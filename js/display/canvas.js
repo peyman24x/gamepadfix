@@ -41,28 +41,23 @@ export const AnalogCanvas = {
         // ۱. محاسبات ریاضی هندسی (Pythagorean Theorem)
         const currentRadius = Math.hypot(x, y); // فاصله برداری از مرکز اصلی
         
-        const analysis = AppState.analysis[stickKey];
-        
-        // [اصلاحیه دفاعی ۱]: تضمین وجود آرایه تاریخچه حرکت برای جلوگیری از خطای ناگهانی Push
-        if (!analysis.historyTrail) {
-            analysis.historyTrail = [];
-        }
-
         // ذخیره مختصات در آرایه تاریخچه مسیر (Trail)
+        const analysis = AppState.analysis[stickKey];
         analysis.historyTrail.push({ x, y });
         if (analysis.historyTrail.length > this.maxTrailPoints) {
             analysis.historyTrail.shift();
         }
 
         // محاسبه آفست مرکز (Center Offset / Drift Vector)
+        // در حالت ایده‌آل وقتی استیک رها شده، مقدار باید 0.0000 باشد
         analysis.centerOffset = currentRadius;
 
         // محاسبه پویای خطای هندسی دایره (Circular Error Rate)
+        // بررسی انحراف استیک در لبه‌های ۳۶۰ درجه نسبت به دایره کامل (محیط ایده آل = 1.0)
         if (currentRadius > 0.85) {
             const error = Math.abs(currentRadius - 1.0) * 100;
-            // [اصلاحیه دفاعی ۲]: استفاده از فالبک صفر برای جلوگیری از تبدیل شدن مقدار به NaN در فریم اول
-            const currentErr = analysis.circularError || 0;
-            analysis.circularError = (currentErr * 0.9) + (error * 0.1);
+            // فیلتر میانگین متحرک ساده برای جلوگیری از پرش عدد خطای دایره
+            analysis.circularError = (analysis.circularError * 0.9) + (error * 0.1);
         }
 
         // ۲. عملیات رندر روی بوم Canvas
@@ -96,7 +91,7 @@ export const AnalogCanvas = {
             for (let i = 0; i < analysis.historyTrail.length; i++) {
                 const pt = analysis.historyTrail[i];
                 const ptX = centerX + (pt.x * radius);
-                const ptY = centerY + (pt.y * radius);
+                const ptY = centerY + (pt.y * radius); // لایه محور Y در کامپیوتر برعکس است
                 if (i === 0) ctx.moveTo(ptX, ptY);
                 else ctx.lineTo(ptX, ptY);
             }
@@ -149,9 +144,7 @@ export const AnalogCanvas = {
         if (matrixContainer) {
             const spans = matrixContainer.querySelectorAll('span');
             spans.forEach(span => {
-                // [اصلاحیه دفاعی ۳]: بررسی وجود ویژگی data-dir پیش از مقایسه کلاس‌ها
-                const targetDir = span.getAttribute('data-dir');
-                if (targetDir === dir) {
+                if (span.getAttribute('data-dir') === dir) {
                     span.classList.add('active');
                 } else {
                     span.classList.remove('active');
