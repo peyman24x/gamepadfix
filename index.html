@@ -3,672 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HID-Fix Pro // مرکز کالیبراسیون تراشه و عیب‌یابی کنترلر</title>
-    <style>
-        /* تعریف پالت رنگی تیره لوکس صنعتی - تم ذغالی عمیق و سنسورهای فسفری */
-        :root {
-            --bg-main: #07080c;
-            --bg-panel: #0e111a;
-            --bg-card: #151926;
-            --color-sony-cyan: #00f2fe;
-            --color-xbox-green: #10b981;
-            --color-warning: #f59e0b;
-            --color-danger: #ef4444;
-            --text-primary: #f1f5f9;
-            --text-muted: #64748b;
-            --border-glow: rgba(255, 255, 255, 0.05);
-            --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: var(--font-family);
-            user-select: none;
-        }
-
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-        }
-
-        /* هدر سایبرپانک ابزار تعمیراتی */
-        header {
-            background: linear-gradient(180deg, #101422 0%, var(--bg-panel) 100%);
-            border-bottom: 1px solid var(--border-glow);
-            padding: 0.8rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        }
-
-        .brand-title h1 {
-            font-size: 1.2rem;
-            font-weight: 900;
-            letter-spacing: 1.5px;
-            background: linear-gradient(90deg, #ffffff, var(--color-sony-cyan));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .brand-title p {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 1.2rem;
-        }
-
-        .badge {
-            font-size: 0.75rem;
-            font-weight: bold;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .badge-disconnected {
-            background: rgba(239, 68, 68, 0.08);
-            color: var(--color-danger);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        .badge-connected {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--color-xbox-green);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
-        }
-
-        .btn-connect-hardware {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white;
-            border: none;
-            padding: 0.55rem 1.4rem;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-        }
-
-        .btn-connect-hardware:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-        }
-
-        /* ساختار گریدبندی ۳ ستونه فوق پیشرفته */
-        main {
-            max-width: 1650px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 1.5rem;
-            display: grid;
-            grid-template-columns: 320px 1fr 340px;
-            gap: 1.5rem;
-            flex-grow: 1;
-        }
-
-        /* پنل‌های کناری تلمتری */
-        .telemetry-sidebar {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-glow);
-            border-radius: 14px;
-            padding: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            transition: opacity 0.3s ease;
-        }
-
-        .section-title {
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: var(--text-primary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-right: 3px solid #2563eb;
-            padding-right: 8px;
-        }
-
-        .grid-2col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.6rem;
-        }
-
-        .tel-node {
-            background: var(--bg-card);
-            border: 1px solid rgba(255, 255, 255, 0.02);
-            padding: 0.7rem;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-        }
-
-        .tel-node:hover {
-            border-color: rgba(255, 255, 255, 0.05);
-            background: #181d2c;
-        }
-
-        .tel-lbl {
-            font-size: 0.68rem;
-            color: var(--text-muted);
-            margin-bottom: 3px;
-        }
-
-        .tel-val {
-            font-size: 1rem;
-            font-weight: 700;
-            font-family: monospace, sans-serif;
-        }
-
-        /* ========================================================
-           بخش مرکزی: شبیه‌ساز فیزیکی ساختار بدنه و دکمه‌های کنترلر
-           ======================================================== */
-        .controller-deck {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .gamepad-chassis {
-            background: radial-gradient(circle at center, #131724 0%, var(--bg-panel) 100%);
-            border: 1px solid var(--border-glow);
-            border-radius: 20px;
-            padding: 2rem 1.5rem;
-            display: grid;
-            grid-template-columns: 260px 1fr 260px;
-            gap: 1rem;
-            align-items: start;
-            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
-            position: relative;
-            transition: opacity 0.3s ease;
-        }
-
-        /* باله چپ دسته (D-Pad, L1, L2, Canvas Left) */
-        .deck-wing-left {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        /* باله راست دسته (Action Buttons, R1, R2, Canvas Right) */
-        .deck-wing-right {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        /* دکمه‌های بالایی کروم (L1 / R1) */
-        .bumper-btn {
-            width: 100%;
-            background: #1e2436;
-            border: 1px solid rgba(255,255,255,0.05);
-            padding: 0.5rem;
-            border-radius: 6px;
-            text-align: center;
-            font-size: 0.75rem;
-            font-weight: 800;
-            color: var(--text-muted);
-            transition: all 0.1s ease;
-        }
-        .bumper-btn.pressed {
-            background: var(--color-sony-cyan) !important;
-            color: #000 !important;
-            box-shadow: 0 0 12px var(--color-sony-cyan) !important;
-            border-color: var(--color-sony-cyan) !important;
-        }
-
-        /* شبیه‌ساز چیدمان فیزیکی D-PAD صلیبی */
-        .dpad-cross-layout {
-            position: relative;
-            width: 110px;
-            height: 110px;
-        }
-
-        .dpad-key {
-            position: absolute;
-            background: #181d2c;
-            border: 1px solid rgba(255,255,255,0.03);
-            color: var(--text-muted);
-            font-size: 0.65rem;
-            font-weight: 900;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.1s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        
-        #btn-dpad-up { top: 0; left: 38px; width: 34px; height: 38px; border-radius: 6px 6px 0 0; }
-        #btn-dpad-down { bottom: 0; left: 38px; width: 34px; height: 38px; border-radius: 0 0 6px 6px; }
-        #btn-dpad-left { top: 38px; left: 0; width: 38px; height: 34px; border-radius: 6px 0 0 6px; }
-        #btn-dpad-right { top: 38px; right: 0; width: 38px; height: 34px; border-radius: 0 6px 6px 0; }
-
-        .dpad-key.pressed, .action-key.pressed {
-            background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-            color: white !important;
-            border-color: #60a5fa !important;
-            box-shadow: 0 0 14px rgba(59, 130, 246, 0.6) !important;
-            transform: scale(0.94);
-        }
-
-        /* شبیه‌ساز چیدمان لوزی دکمه‌های اصلی سمبلیک */
-        .action-diamond-layout {
-            position: relative;
-            width: 110px;
-            height: 110px;
-        }
-
-        .action-key {
-            position: absolute;
-            width: 34px;
-            height: 34px;
-            background: #181d2c;
-            border: 1px solid rgba(255,255,255,0.03);
-            color: var(--text-muted);
-            border-radius: 50%;
-            font-size: 0.75rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: all 0.1s ease;
-        }
-
-        #btn-action-top { top: 0; left: 38px; }      /* △ */
-        #btn-action-bottom { bottom: 0; left: 38px; } /* ✕ */
-        #btn-action-left { top: 38px; left: 0; }      /* □ */
-        #btn-action-right { top: 38px; right: 0; }    /* ◯ */
-
-        /* غلاف دایره‌ای آنالوگ استیک‌ها و خروجی بُعدی کانواس */
-        .stick-pod-wrapper {
-            background: #090b12;
-            border: 2px solid #1a2035;
-            padding: 0.8rem;
-            border-radius: 50%;
-            box-shadow: inset 0 6px 20px rgba(0,0,0,0.8), 0 4px 10px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-        }
-
-        .stick-pod-title {
-            position: absolute;
-            bottom: -22px;
-            font-size: 0.68rem;
-            color: var(--text-muted);
-            font-weight: 700;
-        }
-
-        canvas {
-            background: #040508;
-            border-radius: 50%;
-            display: block;
-        }
-
-        /* دکمه کلیک استیک L3/R3 */
-        .stick-click-tag {
-            position: absolute;
-            top: 6px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.05);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.55rem;
-            font-weight: bold;
-            color: var(--text-muted);
-            transition: all 0.1s ease;
-        }
-        .stick-click-tag.pressed {
-            background: var(--color-xbox-green) !important;
-            color: #000 !important;
-            border-color: var(--color-xbox-green) !important;
-            box-shadow: 0 0 8px var(--color-xbox-green);
-        }
-
-        /* مرکز دک (محل قرارگیری باکس ویزارد کالیبراسیون) */
-        .deck-center-core {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            justify-content: center;
-            height: 100%;
-        }
-
-        /* باکس پیشرفته ویزارد ۷ مرحله‌ای تصحیح سخت‌افزاری دیریفت */
-        .wizard-touchpad-card {
-            background: linear-gradient(145deg, #121724 0%, #0a0d14 100%);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 12px;
-            padding: 1.2rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-            gap: 0.8rem;
-        }
-
-        .wizard-node-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            padding-bottom: 0.5rem;
-        }
-
-        .wizard-node-header h3 {
-            font-size: 0.9rem;
-            color: var(--color-sony-cyan);
-            font-weight: 800;
-        }
-
-        .wizard-node-header span {
-            font-size: 0.7rem;
-            font-family: monospace;
-            color: var(--text-muted);
-        }
-
-        /* نوار پیشرفت مینیاتوری خطی کالیبراسیون جهت پایداری سورس جی‌اس */
-        .wizard-progress-bar-container {
-            height: 3px;
-            background: #020408;
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: -4px;
-        }
-        .progress-bar {
-            height: 100%;
-            width: 14.28%; /* پیش‌فرض گام نخست */
-            background: var(--color-sony-cyan);
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .wizard-body-text {
-            font-size: 0.78rem;
-            line-height: 1.6;
-            color: #94a3b8;
-            min-height: 52px;
-        }
-
-        .wizard-btn-dock {
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.5rem;
-            margin-top: 0.2rem;
-        }
-
-        .btn-wiz-prime {
-            background: #10b981;
-            color: #000;
-            border: none;
-            padding: 0.45rem 1rem;
-            border-radius: 5px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .btn-wiz-prime:hover { background: #0ca673; }
-
-        .btn-wiz-action {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 0.45rem 1rem;
-            border-radius: 5px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        .btn-wiz-secondary {
-            background: #1e2436;
-            color: var(--text-primary);
-            border: 1px solid rgba(255,255,255,0.05);
-            padding: 0.45rem 0.8rem;
-            border-radius: 5px;
-            font-size: 0.75rem;
-            cursor: pointer;
-        }
-
-        /* نوارهای پیشرفت دقیق متغیر تریگرهای آنالوگ L2 / R2 */
-        .trigger-caliper-gauge {
-            width: 100%;
-            background: var(--bg-card);
-            border: 1px solid rgba(255,255,255,0.03);
-            padding: 0.6rem;
-            border-radius: 8px;
-        }
-
-        .trigger-lbl-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-            font-weight: 700;
-        }
-
-        .trigger-rail-bg {
-            height: 5px;
-            background: #090b12;
-            border-radius: 3px;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.02);
-        }
-
-        .trigger-rail-fill {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #2563eb, var(--color-sony-cyan));
-            transition: width 0.04s linear;
-        }
-
-        /* ترمینال مشکی مانیتورینگ بیت‌های زنده ورودی HID */
-        .terminal-mcu-box {
-            background: #040508;
-            border: 1px solid var(--border-glow);
-            border-radius: 10px;
-            padding: 0.8rem;
-            font-family: monospace;
-            font-size: 0.72rem;
-            height: 135px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            box-shadow: inset 0 4px 15px rgba(0,0,0,0.8);
-            color: #34d399;
-        }
-
-        /* استایل سفارشی اسکرول‌بار ابزار ترمینال برای حفظ ظاهر لوکس */
-        .terminal-mcu-box::-webkit-scrollbar {
-            width: 4px;
-        }
-        .terminal-mcu-box::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.3);
-        }
-        .terminal-mcu-box::-webkit-scrollbar-thumb {
-            background: rgba(52, 211, 153, 0.2);
-            border-radius: 2px;
-        }
-        .terminal-mcu-box::-webkit-scrollbar-thumb:hover {
-            background: rgba(52, 211, 153, 0.4);
-        }
-
-        /* لایه تاریک‌کننده هوشمند مدار هنگام دیسکانکت بودن فیزیکی دستگاه */
-        body.disconnected .telemetry-sidebar,
-        body.disconnected .gamepad-chassis {
-            opacity: 0.35;
-            pointer-events: none;
-            filter: grayscale(0.2);
-        }
-
-        /* ماتریس‌های جغرافیایی ۳x۳ پنهان جهت پشتیبانی فرکانس‌بالا بدون خطای فایل canvas.js */
-        .hidden-matrix {
-            display: none;
-        }
-    </style>
+    <title>HID-Fix Pro // مرکز کالیبراسیون و عیب‌یابی کنترلر</title>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="disconnected">
-
-    <header>
-        <div class="brand-title">
-            <h1>HID-Fix Pro <span style="font-size:0.7rem; color:var(--color-sony-cyan)">v1.2.0</span></h1>
-            <p>سامانه مانیتورینگ نوسان تراشه و کالیبراسیون سنسورهای اثرهال و TMR</p>
+    <header class="app-header">
+        <div class="header-logo">
+            <span class="logo-icon">🎮</span>
+            <h1>HID-Fix <span class="text-gradient">Pro</span></h1>
+            <span class="version-tag">v2.0.0</span>
         </div>
-        
         <div class="header-actions">
             <div id="connection-badge" class="badge badge-disconnected">Disconnected</div>
-            <button id="btn-connect" class="btn-connect-hardware">اتصال سخت‌افزاری (WebHID)</button>
+            <button id="btn-connect" class="btn btn-primary">
+                <span class="btn-icon">⚡</span> اتصال به کنترلر (WebHID)
+            </button>
         </div>
     </header>
 
-    <main>
+    <main class="dashboard-grid">
         
-        <section class="telemetry-sidebar">
-            <h2 class="section-title">مشخصات اصلی فریمور</h2>
-            <div class="grid-2col">
-                <div class="tel-node"><div class="tel-lbl">نام دستگاه</div><div id="info-name" class="tel-val">-</div></div>
-                <div class="tel-node"><div class="tel-lbl">نسخه فریمور</div><div id="fw-ver" class="tel-val">-</div></div>
-                <div class="tel-node"><div class="tel-lbl">Vendor ID</div><div id="info-vid" class="tel-val">-</div></div>
-                <div class="tel-node"><div class="tel-lbl">Product ID</div><div id="info-pid" class="tel-val">-</div></div>
+        <section class="panel visualization-panel">
+            <div class="panel-header">
+                <h2>پایش وکتورهای هندسی استیک‌ها</h2>
+                <button id="btn-start-calibration" class="btn btn-secondary-outline">🔧 کالیبراسیون سخت‌افزاری</button>
             </div>
-
-            <h2 class="section-title" style="margin-top: 0.3rem;">مشخصات عمیق ثبتی MCU</h2>
-            <div class="tel-node"><div class="tel-lbl">شناسه سخت‌افزاری تراشه مرکزی</div><div id="hw-mcu" class="tel-val" style="font-size:0.8rem; color:#e2e8f0;">-</div></div>
-            <div class="tel-node"><div class="tel-lbl">سریال نامبر کارخانه برد</div><div id="hw-serial" class="tel-val" style="font-size:0.8rem; color:#e2e8f0;">-</div></div>
-            <div class="tel-node"><div class="tel-lbl">آدرس فیزیکی بلوتوث MAC</div><div id="hw-bt-addr" class="tel-val" style="font-size:0.8rem; color:#e2e8f0;">-</div></div>
             
-            <div class="grid-2col">
-                <div class="tel-node"><div class="tel-lbl">آی‌دی SBL</div><div id="fw-sbl" class="tel-val" style="font-size:0.85rem;">-</div></div>
-                <div class="tel-node"><div class="tel-lbl">درایور تاچ‌پد</div><div id="fw-touchpad" class="tel-val" style="font-size:0.85rem;">-</div></div>
-                <div class="tel-node" style="grid-column: span 2;"><div class="tel-lbl">تاریخ کامپایل فریمور</div><div id="fw-date" class="tel-val" style="font-size:0.85rem;">-</div></div>
+            <div class="canvases-container">
+                <div class="canvas-card glass-card" data-stick="left">
+                    <div class="card-title">
+                        <span class="stick-indicator left-indicator"></span>
+                        <h3>آنالوگ چپ (L-Stick)</h3>
+                        <span id="val-hz-left" class="hz-counter">0 Hz</span>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="canvas-left" width="260" height="260"></canvas>
+                    </div>
+                    <div id="matrix-left" class="direction-matrix">
+                        <span data-dir="NW">NW</span><span data-dir="N">N</span><span data-dir="NE">NE</span>
+                        <span data-dir="W">W</span><span data-dir="C" class="active">C</span><span data-dir="E">E</span>
+                        <span data-dir="SW">SW</span><span data-dir="S">S</span><span data-dir="SE">SE</span>
+                    </div>
+                </div>
+
+                <div class="canvas-card glass-card" data-stick="right">
+                    <div class="card-title">
+                        <span class="stick-indicator right-indicator"></span>
+                        <h3>آنالوگ راست (R-Stick)</h3>
+                        <span id="val-hz-right" class="hz-counter">0 Hz</span>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="canvas-right" width="260" height="260"></canvas>
+                    </div>
+                    <div id="matrix-right" class="direction-matrix">
+                        <span data-dir="NW">NW</span><span data-dir="N">N</span><span data-dir="NE">NE</span>
+                        <span data-dir="W">W</span><span data-dir="C" class="active">C</span><span data-dir="E">E</span>
+                        <span data-dir="SW">SW</span><span data-dir="S">S</span><span data-dir="SE">SE</span>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <section class="controller-deck">
+        <section class="panel telemetry-panel">
             
-            <div class="gamepad-chassis">
+            <div id="wizard-container" class="wizard-box glass-card">
+                <div class="wizard-header">
+                    <span id="wiz-step-number" class="step-badge">مرحله ۱ از ۷</span>
+                    <h3 id="wiz-title">شروع فرآیند کالیبراسیون</h3>
+                </div>
+                <div class="wizard-body">
+                    <div class="progress-bar-wrapper">
+                        <div id="wiz-progress" class="progress-bar" style="width: 14%;"></div>
+                    </div>
+                    <p id="wiz-desc" class="step-desc">در حال بارگذاری ماشین وضعیت کارگاهی...</p>
+                </div>
+                <div class="wizard-actions">
+                    <button id="wiz-btn-cancel" class="btn btn-danger-outline">لغو</button>
+                    <div class="nav-buttons">
+                        <button id="wiz-btn-back" class="btn btn-secondary" disabled>قبلی</button>
+                        <button id="wiz-btn-next" class="btn btn-success">بعدی</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs-wrapper">
+                <div class="tabs-header">
+                    <button class="tab-btn active" data-tab="pane-hardware">مشخصات سخت‌افزار</button>
+                    <button class="tab-btn" data-tab="pane-errors">ماتریس خطا و ددزون</button>
+                </div>
                 
-                <div class="deck-wing-left">
-                    <div id="btn-l1" class="bumper-btn">L1 / BUMPER</div>
+                <div class="tabs-content">
+                    <div id="pane-hardware" class="tab-pane active">
+                        <ul class="telemetry-list">
+                            <li><span>نام دستگاه:</span> <strong id="info-name">-</strong></li>
+                            <li><span>شناسه تولیدکننده (VID):</span> <strong id="info-vid">-</strong></li>
+                            <li><span>شناسه محصول (PID):</span> <strong id="info-pid">-</strong></li>
+                            <li><span>نسخه فریمور:</span> <strong id="fw-ver">-</strong></li>
+                            <li><span>تاریخ بیلد کارخانه:</span> <strong id="fw-date">-</strong></li>
+                            <li><span>شناسه پردازنده اصلی (MCU ID):</span> <strong id="hw-mcu">-</strong></li>
+                            <li><span>شماره سریال برد:</span> <strong id="hw-serial">-</strong></li>
+                            <li><span>آدرس سخت‌افزاری بلوتوث:</span> <strong id="hw-bt-addr" class="code-font">-</strong></li>
+                        </ul>
+                    </div>
                     
-                    <div class="dpad-cross-layout">
-                        <div id="btn-dpad-up" class="dpad-key">▲</div>
-                        <div id="btn-dpad-down" class="dpad-key">▼</div>
-                        <div id="btn-dpad-left" class="dpad-key">◀</div>
-                        <div id="btn-dpad-right" class="dpad-key">▶</div>
-                    </div>
-
-                    <div class="stick-pod-wrapper">
-                        <span id="btn-l3" class="stick-click-tag">L3 CLICK</span>
-                        <canvas id="canvas-left" width="160" height="160"></canvas>
-                        <div class="stick-pod-title">Left Analog Stick</div>
-                    </div>
-                </div>
-
-                <div class="deck-center-core">
-                    <div class="wizard-touchpad-card">
-                        <div class="wizard-node-header">
-                            <h3 id="wiz-title" class="step-title">سیستم کالیبراسیون خودکار</h3>
-                            <span id="wiz-step-counter">مرحله ۱ از ۷</span>
-                        </div>
-                        <div class="wizard-progress-bar-container">
-                            <div id="wizard-progress" class="progress-bar"></div>
-                        </div>
-                        <p id="wiz-description" class="wizard-body-text step-desc">
-                            برای عیب‌یابی خطای دایره‌ای و تراز کردن لایه‌های مقاومت آنالوگ، ابتدا دسته را متصل کرده و دکمه شروع را بفشارید.
-                        </p>
-                        <div class="wizard-btn-dock">
-                            <button id="btn-start-calibration" class="btn-wiz-prime">شروع کالیبراسیون</button>
-                            <button id="wiz-btn-back" class="btn-wiz-secondary" style="display:none;">قبلی</button>
-                            <button id="wiz-btn-next" class="btn-wiz-action" style="display:none;">تایید و بعد</button>
-                            <button id="wiz-btn-cancel" class="btn-wiz-secondary" style="display:none; color:var(--color-danger);">لغو</button>
+                    <div id="pane-errors" class="tab-pane">
+                        <div class="error-metrics-grid">
+                            <div class="metric-card">
+                                <span class="lbl">آفست سنتر چپ</span>
+                                <div id="err-l-offset" class="val">0.0000</div>
+                            </div>
+                            <div class="metric-card">
+                                <span class="lbl">آفست سنتر راست</span>
+                                <div id="err-r-offset" class="val">0.0000</div>
+                            </div>
+                            <div class="metric-card warning">
+                                <span class="lbl">خطای دایره‌ای چپ</span>
+                                <div id="err-l-circ" class="val">0.00%</div>
+                            </div>
+                            <div class="metric-card warning">
+                                <span class="lbl">خطای دایره‌ای راست</span>
+                                <div id="err-r-circ" class="val">0.00%</div>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="grid-2col" style="margin-top:0.5rem;">
-                        <div class="tel-node" style="text-align:center;"><div class="tel-lbl">مختصات آنالوگ چپ</div><div style="font-size:0.8rem; font-family:monospace;">LX:<span id="axis-lx">0.0</span> | LY:<span id="axis-ly">0.0</span></div></div>
-                        <div class="tel-node" style="text-align:center;"><div class="tel-lbl">مختصات آنالوگ راست</div><div style="font-size:0.8rem; font-family:monospace;">RX:<span id="axis-rx">0.0</span> | RY:<span id="axis-ry">0.0</span></div></div>
-                    </div>
                 </div>
-
-                <div class="deck-wing-right">
-                    <div id="btn-r1" class="bumper-btn">R1 / BUMPER</div>
-
-                    <div class="action-diamond-layout">
-                        <div id="btn-action-top" class="action-key">△</div>
-                        <div id="btn-action-bottom" class="action-key">✕</div>
-                        <div id="btn-action-left" class="action-key">□</div>
-                        <div id="btn-action-right" class="action-key">◯</div>
-                    </div>
-
-                    <div class="stick-pod-wrapper">
-                        <span id="btn-r3" class="stick-click-tag">R3 CLICK</span>
-                        <canvas id="canvas-right" width="160" height="160"></canvas>
-                        <div class="stick-pod-title">Right Analog Stick</div>
-                    </div>
-                </div>
-
             </div>
 
-            <div class="grid-2col">
-                <div class="trigger-caliper-gauge">
-                    <div class="trigger-lbl-row"><span>ماشه سمت چپ (L2 TRIGGER)</span></div>
-                    <div class="trigger-rail-bg"><div id="bar-l2" class="trigger-rail-fill"></div></div>
+            <div class="console-wrapper">
+                <div class="console-header">
+                    <span>کنسول مانیتورینگ زنده (Live Core Logs)</span>
+                    <span class="blink-dot"></span>
                 </div>
-                <div class="trigger-caliper-gauge">
-                    <div class="trigger-lbl-row"><span>ماشه سمت راست (R2 TRIGGER)</span></div>
-                    <div class="trigger-rail-bg"><div id="bar-r2" class="trigger-rail-fill"></div></div>
+                <div id="app-console" class="console-body">
+                    <div class="log-info">[INFO] لایه گرافیکی سیستم آماده شنود پکت‌های WebHID می‌باشد.</div>
                 </div>
             </div>
 
         </section>
-
-        <section class="telemetry-sidebar">
-            <h2 class="section-title">سیگنال زنده شبکه HID</h2>
-            <div class="grid-2col">
-                <div class="tel-node"><div class="tel-lbl">نرخ فرکانس (پولینگ)</div><div id="rate-l-poll" class="tel-val" style="color:var(--color-sony-cyan);">-</div></div>
-                <div class="tel-node"><div class="tel-lbl">بستر اتصال فیزیکی</div><div id="val-conn-type" class="tel-val">-</div></div>
-                <div class="tel-node"><div class="tel-lbl">درصد باتری سلول</div><div id="val-battery-lvl" class="tel-val">-</div></div>
-                <div class="tel-node"><div class="tel-lbl">وضعیت منبع انرژی</div><div id="val-charge-status" class="tel-val" style="font-size:0.8rem;">-</div></div>
-                <div class="tel-node" style="grid-column: span 2;"><div class="tel-lbl">ولتاژ تایید شده مدار تغذیه</div><div id="val-voltage" class="tel-val">-</div></div>
-            </div>
-
-            <h2 class="section-title" style="margin-top: 0.3rem;">تحلیل برداری دایره‌ای (Error Matrix)</h2>
-            <div class="grid-2col">
-                <div class="tel-node"><div class="tel-lbl">آفست سنتر چپ</div><div id="err-l-offset" class="tel-val">0.0000</div></div>
-                <div class="tel-node"><div class="tel-lbl">آفست سنتر راست</div><div id="err-r-offset" class="tel-val">0.0000</div></div>
-                <div class="tel-node"><div class="tel-lbl">خطای بازه چپ</div><div id="err-l-circ" class="tel-val" style="color:var(--color-warning);">0.00%</div></div>
-                <div class="tel-node"><div class="tel-lbl">خطای بازه راست</div><div id="err-r-circ" class="tel-val" style="color:var(--color-warning);">0.00%</div></div>
-            </div>
-
-            <h2 class="section-title" style="margin-top: 0.3rem;">کنسول پکت‌های خام و وقایع MCU</h2>
-            <div id="sys-log" class="terminal-mcu-box"></div>
-        </section>
-
     </main>
-
-    <div class="hidden-matrix" id="matrix-left"><span></span></div>
-    <div class="hidden-matrix" id="matrix-right"><span></span></div>
-
-    <script type="module" src="js/core/app.js"></script>
 </body>
 </html>
