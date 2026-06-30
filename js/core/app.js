@@ -66,24 +66,29 @@ const AppCore = {
         });
     },
 
-    runUpdateLoop() {
+runUpdateLoop() {
         const loop = () => {
             this.syncStateWithUI();
             this.renderHardwareButtonsMap();
             
             if (AppState.connection.status === 'connected') {
-                // اعمال پویای ضریب اصلاح کالیبراسیون فاز ۵ روی محورها قبل از رندر نهایی
-                const calibratedLX = AppState.inputs.axes.lx - AppState.calibration.offsetLX;
-                const calibratedLY = AppState.inputs.axes.ly - AppState.calibration.offsetLY;
-                const calibratedRX = AppState.inputs.axes.rx - AppState.calibration.offsetRX;
-                const calibratedRY = AppState.inputs.axes.ry - AppState.calibration.offsetRY;
+                // [کد دفاعی فاز ۵]: تضمین وجود شیء کالیبراسیون برای جلوگیری از کرش لوپ ۶۰FPS
+                const calib = AppState.calibration || { offsetLX: 0, offsetLY: 0, offsetRX: 0, offsetRY: 0 };
+
+                // اعمال پویای ضریب اصلاح با فالبک صفر برای امنیت ۱۰۰٪
+                const calibratedLX = AppState.inputs.axes.lx - (calib.offsetLX || 0);
+                const calibratedLY = AppState.inputs.axes.ly - (calib.offsetLY || 0);
+                const calibratedRX = AppState.inputs.axes.rx - (calib.offsetRX || 0);
+                const calibratedRY = AppState.inputs.axes.ry - (calib.offsetRY || 0);
 
                 // رندر گرافیکی کانوس‌ها با مقادیر اصلاح‌شده
                 AnalogCanvas.updateAndRender('left', calibratedLX, calibratedLY);
                 AnalogCanvas.updateAndRender('right', calibratedRX, calibratedRY);
 
-                // [توسعه فاز ۵]: مانیتورینگ آنلاین بافرها در مراحل فعال کالیبراسیون
-                CalibrationWizard.captureLiveBounds();
+                // مانیتورینگ آنلاین بافرها در مراحل فعال کالیبراسیون
+                if (typeof CalibrationWizard !== 'undefined' && CalibrationWizard.captureLiveBounds) {
+                    CalibrationWizard.captureLiveBounds();
+                }
             }
             
             requestAnimationFrame(loop);
