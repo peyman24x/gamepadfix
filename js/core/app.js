@@ -11,9 +11,6 @@ import { AnalogCanvas } from '../display/canvas.js';
 import { CalibrationWizard } from './wizard.js';
 
 const AppCore = {
-    /**
-     * راه‌اندازی اولیه ماژول‌ها و شنودارهای رویداد رابط کاربری
-     */
     init() {
         AppState.log('هسته مرکزی سامانه HID-Fix با موفقیت راه‌اندازی شد.', 'info');
         
@@ -30,7 +27,6 @@ const AppCore = {
         document.getElementById('wiz-btn-back')?.addEventListener('click', () => CalibrationWizard.prevStep());
         document.getElementById('wiz-btn-cancel')?.addEventListener('click', () => CalibrationWizard.cancel());
 
-        // اتصال دکمه اصلی برقراری ارتباط سخت‌افزاری WebHID
         const btnConnect = document.getElementById('btn-connect');
         if (btnConnect) {
             btnConnect.addEventListener('click', () => HidEngine.requestDevicePermission());
@@ -38,23 +34,21 @@ const AppCore = {
 
         this.initTabs();
 
-        // اتصال لوپ فیزیکی موتور پکت‌ها به دکودرهای مربوطه
-        HidEngine.onDeviceInput = (reportId, dataView) => {
-            const vId = AppState.deviceInfo.vendorId;
-            if (vId === 0x054C || vId === '0x054C') {
-                SonyDecoder.decodeInput(reportId, dataView);
-            } else if (vId === 0x045E || vId === '0x045E') {
-                XboxDecoder.decodeInput(reportId, dataView);
-            }
+        // حل باگ عدم جفت‌شدن دکودرها: اتصال صحیح به ساختار رویداد جدید HidEngine
+        HidEngine.onInputReceived = (reportId, dataView) => {
+            const vId = AppState.deviceInfo.vendorId; // رشته هگز مثلاً "0x054C"
             
-            // اجرای لوپ پردازش و رندر ۶۰FPS بر روی کانوس‌ها
-            this.processLiveFrame();
+            if (vId === '0x054C') {
+                if (typeof SonyDecoder !== 'undefined') SonyDecoder.decodeInput(reportId, dataView);
+            } else if (vId === '0x045E') {
+                if (typeof XboxDecoder !== 'undefined') XboxDecoder.decodeInput(reportId, dataView);
+            }
         };
+
+        // راه‌اندازی شتاب‌دهنده گرافیکی ۶۰FPS پایدار مجزا از بازه زمانی پکت‌های وب‌هید
+        this.startRenderLoop();
     },
 
-    /**
-     * مدیریت تبهاب سایدبار (تلمتری فریمور / اطلاعات کارگاهی)
-     */
     initTabs() {
         const tabs = document.querySelectorAll('.tab-btn');
         tabs.forEach(tab => {
@@ -70,22 +64,32 @@ const AppCore = {
     },
 
     /**
-     * هسته پردازش فریم زنده - انتقال داده‌های کالیبره شده به کانوس و مانیتورینگ DOM
+     * شتاب‌دهنده سخت‌افزاری رندر غیرهمزمان فریم‌ها
      */
+    startRenderLoop() {
+        const loop = () => {
+            this.processLiveFrame();
+            requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+    },
+
     processLiveFrame() {
         const axes = AppState.inputs.axes;
         
-        // ۱. رندر زنده مختصات هندسی روی لایه کانوس
+        // ۱. رندر زنده مختصات هندسی روی لایه کانوس (۶۰ مرتبه در ثانیه)
         AnalogCanvas.updateAndRender('left', axes.lx, axes.ly);
         AnalogCanvas.updateAndRender('right', axes.rx, axes.ry);
 
-        // ۲. به‌روزرسانی مداوم و بهینه رابط کاربری متنی و دیجیتال
+        // ۲. حل باگ منطقی کالیبراسیون: مانیتورینگ آنلاین استیک‌ها برای ثبت بیشترین محدوده حرکتی لبه‌ها
+        if (CalibrationWizard.isActive) {
+            CalibrationWizard.captureLiveBounds();
+        }
+
+        // ۳. به‌روزرسانی مداوم و بهینه رابط کاربری متنی و دیجیتال
         this.updateDOMState();
     },
 
-    /**
-     * رندر عمیق لایه متنی و کدهای تلمتری با مکانیزم‌های حفاظتی بالاو انطباق با فاز ۱
-     */
     updateDOMState() {
         const body = document.body;
         const isConnected = AppState.connection.isConnected;
@@ -95,11 +99,10 @@ const AppCore = {
             
             const badge = document.getElementById('connection-badge');
             if (badge) {
-                badge.innerText = `Connected (${AppState.connection.type?.toUpperCase()})`;
+                badge.innerText = `Connected (${AppState.connection.type})`;
                 badge.className = 'badge badge-connected';
             }
 
-            // رندر زنده نرخ نمونه‌برداری پکت‌ها (Polling Rate)
             const hzLeft = AppState.analysis.left.pollingRate || 0;
             const hzRight = AppState.analysis.right.pollingRate || 0;
             const elHzLeft = document.getElementById('val-hz-left');
@@ -107,7 +110,6 @@ const AppCore = {
             if (elHzLeft) elHzLeft.innerText = `${hzLeft} Hz`;
             if (elHzRight) elHzRight.innerText = `${hzRight} Hz`;
 
-            // رندر نتایج آنالیز برداری و ماتریس خطای دایره‌ای استیک‌ها
             const lOffset = AppState.analysis.left.centerOffset || 0;
             const rOffset = AppState.analysis.right.centerOffset || 0;
             const lCircErr = AppState.analysis.left.circularError || 0;
@@ -123,7 +125,6 @@ const AppCore = {
             if (elLCirc) elLCirc.innerText = `${lCircErr.toFixed(2)}%`;
             if (elRCirc) elRCirc.innerText = `${rCircErr.toFixed(2)}%`;
 
-            // رندر اطلاعات هویتی و کدهای عمیق ثبت کارخانه (تزریق فاز ۱)
             const elName = document.getElementById('info-name');
             if (elName) elName.innerText = (AppState.deviceInfo.name || 'Unknown').substring(0, 22);
             
@@ -132,13 +133,11 @@ const AppCore = {
             if (elVid) elVid.innerText = AppState.deviceInfo.vendorId;
             if (elPid) elPid.innerText = AppState.deviceInfo.productId;
 
-            // رندر اطلاعات فریمور استخراج شده از رجیسترهای اصلی سخت‌افزار
             if (document.getElementById('fw-ver')) document.getElementById('fw-ver').innerText = AppState.deviceInfo.firmware?.version || '-';
             if (document.getElementById('fw-date')) document.getElementById('fw-date').innerText = AppState.deviceInfo.firmware?.buildDate || '-';
             if (document.getElementById('fw-sbl')) document.getElementById('fw-sbl').innerText = AppState.deviceInfo.firmware?.sblVersion || '-';
             if (document.getElementById('fw-touchpad')) document.getElementById('fw-touchpad').innerText = AppState.deviceInfo.firmware?.touchpadDriver || '-';
             
-            // رندر کدهای اختصاصی شناسایی سخت‌افزار مادری
             if (document.getElementById('hw-mcu')) document.getElementById('hw-mcu').innerText = AppState.deviceInfo.hardware?.mcuId || '-';
             if (document.getElementById('hw-serial')) document.getElementById('hw-serial').innerText = AppState.deviceInfo.hardware?.factorySerial || '-';
             if (document.getElementById('hw-bt-addr')) document.getElementById('hw-bt-addr').innerText = AppState.deviceInfo.hardware?.macAddress || '-';
