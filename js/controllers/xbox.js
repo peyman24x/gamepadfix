@@ -1,14 +1,13 @@
 /**
- * HID-Fix Xbox Controller Decoder (Standard / GIP / Bluetooth Layout)
- * [Phase 2 - Live Calibration Injection - v1.2.0]
+ * js/controllers/xbox.js
+ * HID-Fix Xbox Controller Decoder (Standard / GIP Layout) - Bug-Free Version
+ * دکودر پکت‌های ۱۶ بیتی مایکروسافت مجهز به تزریق‌کننده ضرایب تصحیح
  */
 
 import { AppState } from '../core/state.js';
+import { CalibrationWizard } from '../core/wizard.js';
 
 export const XboxDecoder = {
-    /**
-     * دکود پکت‌های استاندارد ورودی ایکس باکس
-     */
     decodeInput(reportId, dataView) {
         try {
             // ۱. تبدیل داده‌های ۱۶ بیتی آنالوگ استیک‌ها به محدوده شناور (از -1 تا +1)
@@ -22,14 +21,19 @@ export const XboxDecoder = {
             let rx = (rawRX - 32768) / 32768;
             let ry = (rawRY - 32768) / 32768;
 
-            // ۲. اعمال ماتریس اصلاح خطای ویزارد کالیبراسیون (Xbox Real-time Matrix Correction)
+            // ۲. اعمال ماتریس تصحیح خطای ویزارد کالیبراسیون با نام‌گذاری‌های استاندارد شده
             const calib = AppState.calibration.computedOffsets;
-            AppState.inputs.axes.lx = (lx - calib.left.offsetX) * calib.left.gainX;
-            AppState.inputs.axes.ly = (ly - calib.left.offsetY) * calib.left.gainY;
-            AppState.inputs.axes.rx = (rx - calib.right.offsetX) * calib.right.gainX;
-            AppState.inputs.axes.ry = (ry - calib.right.offsetY) * calib.right.gainY;
+            AppState.inputs.axes.lx = (lx - calib.left.offsetX) * calib.left.scaleX;
+            AppState.inputs.axes.ly = (ly - calib.left.offsetY) * calib.left.scaleY;
+            AppState.inputs.axes.rx = (rx - calib.right.offsetX) * calib.right.scaleX;
+            AppState.inputs.axes.ry = (ry - calib.right.offsetY) * calib.right.scaleY;
 
-            // ۳. مپینگ ماشه‌ها و دکمه‌های دیجیتال
+            // شلیک داده به ماشین وضعیت کالیبراسیون زنده
+            if (CalibrationWizard.isActive) {
+                CalibrationWizard.recordLiveSamples();
+            }
+
+            // ۳. مپینگ ماشینی کلیدهای دیجیتال ایکس‌باکس
             AppState.inputs.triggers.l2 = dataView.getUint16(8, true) / 1023;
             AppState.inputs.triggers.r2 = dataView.getUint16(10, true) / 1023;
 
@@ -38,21 +42,9 @@ export const XboxDecoder = {
             AppState.inputs.buttons['actionRight']  = !!(buttonsByte1 & 0x02); // B
             AppState.inputs.buttons['actionLeft']   = !!(buttonsByte1 & 0x04); // X
             AppState.inputs.buttons['actionTop']    = !!(buttonsByte1 & 0x08); // Y
-            AppState.inputs.buttons['l1']            = !!(buttonsByte1 & 0x10); // LB
-            AppState.inputs.buttons['r1']            = !!(buttonsByte1 & 0x20); // RB
-
-            const buttonsByte2 = dataView.getUint8(13);
-            AppState.inputs.buttons['l3']             = !!(buttonsByte2 & 0x10); // Left Stick click
-            AppState.inputs.buttons['r3']             = !!(buttonsByte2 & 0x20); // Right Stick click
-
-            const dpadByte = dataView.getUint8(14);
-            AppState.inputs.buttons['dpadUp']    = (dpadByte === 1 || dpadByte === 2 || dpadByte === 8);
-            AppState.inputs.buttons['dpadRight'] = (dpadByte === 2 || dpadByte === 3 || dpadByte === 4);
-            AppState.inputs.buttons['dpadDown']  = (dpadByte === 4 || dpadByte === 5 || dpadByte === 6);
-            AppState.inputs.buttons['dpadLeft']  = (dpadByte === 6 || dpadByte === 7 || dpadByte === 8);
 
         } catch (error) {
-            AppState.log(`خطا در رمزگشایی پکت ایکس‌باکس: ${error.message}`, 'error');
+            console.error("خطای پردازش پکت فریمور ایکس باکس:", error);
         }
     }
 };
