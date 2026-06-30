@@ -1,19 +1,14 @@
 /* css/styles.css */
 :root {
-    --bg-main: #04060f;
-    --bg-panel: rgba(8, 12, 24, 0.9);
-    --bg-card: rgba(16, 23, 44, 0.5);
+    --bg-main: #04060e;
+    --bg-panel: rgba(9, 14, 28, 0.85);
+    --bg-card: rgba(18, 26, 48, 0.5);
     --border-glass: rgba(255, 255, 255, 0.05);
-    --border-focus: rgba(0, 242, 254, 0.5);
     
-    /* رنگ‌های بازخورد نوری سیگنال */
     --color-cyan: #00f2fe;
-    --color-sony: #3b82f6;
     --color-xbox: #10b981;
     --color-warning: #f59e0b;
     --color-danger: #ef4444;
-    --color-success: #10b981;
-    
     --text-primary: #f8fafc;
     --text-muted: #64748b;
     --font-main: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -28,157 +23,158 @@
 }
 
 body {
-    background: radial-gradient(circle at 50% 0%, #0a1733 0%, var(--bg-main) 80%);
+    background: radial-gradient(circle at 50% 0%, #0a1631 0%, var(--bg-main) 75%);
     color: var(--text-primary);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
 }
 
-/* هدر مدرن سایبرنتیک */
+/* هدر پیشرفته */
 .app-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 16px 32px;
-    background: rgba(4, 6, 15, 0.8);
+    background: rgba(4, 6, 14, 0.8);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border-glass);
-    position: sticky;
-    top: 0;
-    z-index: 100;
 }
 
 .header-logo { display: flex; align-items: center; gap: 12px; }
-.header-logo h1 { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.5px; }
+.header-logo h1 { font-size: 1.25rem; font-weight: 800; }
 .text-gradient { background: linear-gradient(90deg, var(--color-cyan), #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.version-tag { font-size: 0.7rem; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 4px; color: var(--text-muted); font-weight: bold; }
+.version-tag { font-size: 0.7rem; background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 4px; color: var(--text-muted); font-weight: bold; }
 
-/* دکمه‌های تعاملی لوکس */
+/* دکمه‌ها و نشانگرها */
 .btn {
     padding: 10px 20px;
     border-radius: 8px;
     font-weight: 600;
     font-size: 0.85rem;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    transition: all 0.2s ease;
     border: none;
 }
-.btn-primary { background: linear-gradient(135deg, var(--color-cyan), #00b8e6); color: #04060f; box-shadow: 0 0 20px rgba(0, 242, 254, 0.25); }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 30px rgba(0, 242, 254, 0.5); }
+.btn-primary { background: linear-gradient(135deg, var(--color-cyan), #00b8e6); color: #04060f; box-shadow: 0 0 20px rgba(0, 242, 254, 0.2); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 30px rgba(0, 242, 254, 0.4); }
 .btn-secondary-outline { background: transparent; border: 1px solid var(--border-glass); color: var(--text-primary); }
-.btn-secondary-outline:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--text-muted); }
+.btn-secondary-outline:hover { background: rgba(255, 255, 255, 0.04); }
 
 .badge { padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; border: 1px solid transparent; }
-.badge-disconnected { background: rgba(239, 68, 68, 0.1); color: var(--color-danger); border-color: rgba(239, 68, 68, 0.2); }
-.badge-connected { background: rgba(16, 185, 129, 0.1); color: var(--color-success); border-color: rgba(16, 185, 129, 0.2); }
+.badge-disconnected { background: rgba(239, 68, 68, 0.08); color: var(--color-danger); border-color: rgba(239, 68, 68, 0.15); }
+.badge-connected { background: rgba(16, 185, 129, 0.08); color: var(--color-xbox); border-color: rgba(16, 185, 129, 0.15); }
 
-/* ساختار شبکه داشبورد (Grid Layout) */
+/* ساختار شبکه داشبورد */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: 1.05fr 0.95fr;
     gap: 24px;
     padding: 24px;
     flex: 1;
-    max-width: 1600px;
+    max-width: 1500px;
     margin: 0 auto;
     width: 100%;
 }
 
 .panel { display: flex; flex-direction: column; gap: 20px; }
-.panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px; }
-.panel-header h2 { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+.panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glass); padding-bottom: 10px; }
+.panel-header h2 { font-size: 1.05rem; font-weight: 700; }
 
-/* کارت‌های شیشه‌ای گلس‌مورفیسم */
 .glass-card {
     background: var(--bg-panel);
     border: 1px solid var(--border-glass);
     border-radius: 12px;
     padding: 20px;
     backdrop-filter: blur(12px);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-.canvases-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.canvases-container { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .canvas-card { display: flex; flex-direction: column; align-items: center; }
-.card-title { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 0.9rem; }
-.hz-counter { font-family: monospace; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; color: var(--color-cyan); font-weight: bold; }
+.card-title { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.85rem; }
+.hz-counter { font-family: monospace; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; color: var(--color-cyan); font-weight: bold; }
 
 .canvas-wrapper {
-    background: #02040a;
+    background: #020409;
     border: 1px solid var(--border-glass);
     border-radius: 10px;
-    padding: 10px;
+    padding: 8px;
     box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
-/* شبکه ماتریس موقعیت جغرافیایی ۳x۳ زیر آنالوگ */
-.direction-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 150px; text-align: center; }
-.direction-matrix span { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 4px 0; border-radius: 4px; border: 1px solid transparent; }
-.direction-matrix span.active { color: var(--color-cyan); background: rgba(0, 242, 254, 0.1); border-color: rgba(0, 242, 254, 0.2); font-weight: 900; box-shadow: 0 0 10px rgba(0,242,254,0.15); }
+.direction-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: 140px; text-align: center; }
+.direction-matrix span { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); background: rgba(255,255,255,0.01); padding: 3px 0; border-radius: 3px; }
+.direction-matrix span.active { color: var(--color-cyan); background: rgba(0, 242, 254, 0.1); font-weight: 900; }
 
 /* ==========================================================================
-   طراحی پیشرفته نقشه دوقلوی دیجیتال دسته‌ها (Digtial Twin Virtual Gamepad Style)
+   طراحی پیشرفته نقشه دوقلوی دیجیتال دسته‌ها (Digital Twin Gamepad UI)
    ========================================================================== */
-.controller-mapper-wrapper h3 { font-size: 0.9rem; margin-bottom: 16px; color: var(--text-primary); border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 8px;}
-.virtual-gamepad { display: flex; flex-direction: column; gap: 16px; background: rgba(4, 6, 12, 0.4); padding: 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.02); }
+.virtual-gamepad {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(3, 5, 12, 0.5);
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.01);
+}
+
 .gamepad-row { display: flex; justify-content: space-between; gap: 12px; }
 
-/* استایل تخصصی تریگرها (L2 / R2) */
-.trigger-node { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-.btn-lbl { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
-.trigger-track { height: 8px; background: #020409; border-radius: 4px; overflow: hidden; border: 1px solid var(--border-glass); }
-.trigger-fill { height: 100%; background: linear-gradient(90deg, #4f46e5, var(--color-cyan)); width: 0%; transition: width 0.05s ease; }
-.trigger-val { font-size: 0.75rem; font-family: monospace; color: var(--color-cyan); text-align: left; }
+/* استایل تریگرهای آنالوگ کششی */
+.trigger-container { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.lbl-node { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
+.trigger-track { height: 6px; background: #020408; border-radius: 3px; overflow: hidden; border: 1px solid var(--border-glass); }
+.trigger-fill { height: 100%; background: linear-gradient(90deg, #4f46e5, var(--color-cyan)); width: 0%; transition: width 0.04s ease; }
+.trigger-val { font-size: 0.7rem; font-family: monospace; color: var(--color-cyan); }
 
-/* کلیدهای سیمی/خطی بالایی (Bumpers L1/R1, L3/R3) */
-.gamepad-btn-wire { flex: 1; text-align: center; padding: 6px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px; font-size: 0.75rem; font-weight: bold; color: var(--text-muted); transition: all 0.05s ease; }
-.gamepad-btn-wire.pressed { background: rgba(16, 185, 129, 0.2); border-color: var(--color-xbox); color: var(--text-primary); box-shadow: 0 0 12px rgba(16, 185, 129, 0.3); }
+/* کلیدهای سیمی خطی */
+.wire-btn {
+    flex: 1; text-align: center; padding: 6px; background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border-glass); border-radius: 6px; font-size: 0.75rem;
+    font-weight: bold; color: var(--text-muted); transition: all 0.05s ease;
+}
+.wire-btn.pressed { background: rgba(16, 185, 129, 0.15); border-color: var(--color-xbox); color: #fff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.25); }
 
-/* طرح اصلی مپینگ پایینی کلیدها */
-.gamepad-main-layout { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+/* شاسی اصلی نقشه دسته */
+.gamepad-chassis { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; background: rgba(255,255,255,0.01); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02); }
 
-/* کراس یا ضربدر کلیدهای پد جهت (D-PAD) */
-.dpad-cross { display: flex; flex-direction: column; align-items: center; }
-.dpad-node { width: 34px; height: 34px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; border-radius: 4px; color: var(--text-muted); transition: all 0.05s ease; }
-.dpad-row-mid { display: flex; gap: 34px; margin: -2px 0; }
-.dpad-node.pressed { background: rgba(0, 242, 254, 0.2); border-color: var(--color-cyan); color: var(--text-primary); box-shadow: 0 0 12px rgba(0, 242, 254, 0.3); }
+/* طراحی صلیب جهتی D-PAD */
+.dpad-cluster { display: flex; flex-direction: column; align-items: center; }
+.dpad-btn { width: 32px; height: 32px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; border-radius: 4px; color: var(--text-muted); transition: all 0.05s ease; }
+.dpad-mid-row { display: flex; gap: 32px; margin: -2px 0; }
+.dpad-btn.pressed { background: rgba(0, 242, 254, 0.15); border-color: var(--color-cyan); color: #fff; box-shadow: 0 0 10px rgba(0, 242, 254, 0.25); }
 
-/* خوشه‌های دکمه اکشن (Action Nodes A/B/X/Y) */
+/* خوشه‌های دکمه عملیاتی اکشن */
 .action-cluster { display: flex; flex-direction: column; align-items: center; }
-.action-node { width: 36px; height: 36px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; border-radius: 50%; color: var(--text-muted); font-weight: bold; transition: all 0.05s ease; }
-.action-row-mid { display: flex; gap: 36px; margin: -2px 0; }
-.action-node.pressed { background: rgba(245, 158, 11, 0.2) !important; border-color: var(--color-warning) !important; color: var(--text-primary) !important; box-shadow: 0 0 15px rgba(245, 158, 11, 0.4) !important; }
+.action-btn { width: 34px; height: 34px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; border-radius: 50%; color: var(--text-muted); font-weight: bold; transition: all 0.05s ease; }
+.action-mid-row { display: flex; gap: 34px; margin: -2px 0; }
+.action-btn.pressed { background: rgba(245, 158, 11, 0.15) !important; border-color: var(--color-warning) !important; color: #fff !important; box-shadow: 0 0 10px rgba(245, 158, 11, 0.3) !important; }
 
-.sticks-click-status { display: flex; flex-direction: column; gap: 8px; width: 110px; }
+.center-clicks { display: flex; flex-direction: column; gap: 6px; width: 90px; }
+.click-node { font-size: 0.7rem; padding: 4px; }
 
-/* جدول و لیست تلمتری */
-.telemetry-card h3 { font-size: 0.9rem; margin-bottom: 12px; color: var(--text-primary); }
-.error-metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.metric-card { background: #03060d; border: 1px solid var(--border-glass); padding: 10px; border-radius: 6px; text-align: center; }
-.metric-card .lbl { font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 4px; }
-.metric-card .val { font-size: 1.05rem; font-weight: 700; font-family: monospace; color: var(--color-cyan); }
-.metric-card.warning .val { color: var(--color-warning); }
+/* جداول متنی تلمتری */
+.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.metric-node { background: #03050b; border: 1px solid var(--border-glass); padding: 10px; border-radius: 6px; text-align: center; }
+.metric-node .m-lbl { font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 2px; }
+.metric-node .m-val { font-size: 1rem; font-weight: 700; font-family: monospace; color: var(--color-cyan); }
+.metric-node.alert .m-val { color: var(--color-warning); }
 
-.grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.telemetry-list { list-style: none; font-size: 0.75rem; }
-.telemetry-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.01); }
-.telemetry-list li span { color: var(--text-muted); }
+.hardware-info-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.info-specs { list-style: none; font-size: 0.75rem; }
+.info-specs li { display: flex; justify-content: space-between; padding: 4px 0; }
+.info-specs li span { color: var(--text-muted); }
 .code-font { font-family: monospace; color: var(--color-cyan); }
 
-/* کنسول پیشرفته دیباگ زنده */
-.console-wrapper { background: #010308; border: 1px solid var(--border-glass); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 110px; margin-top: 4px; }
-.console-header { background: rgba(255,255,255,0.02); padding: 6px 12px; font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.02); }
-.blink-dot { width: 6px; height: 6px; background: var(--color-danger); border-radius: 50%; animation: blink 1s infinite alternate; }
-.console-body { padding: 10px; font-family: monospace; font-size: 0.7rem; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+/* پنجره مانیتورینگ هسته */
+.console-wrapper { background: #010307; border: 1px solid var(--border-glass); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 110px; }
+.console-header { background: rgba(255,255,255,0.01); padding: 6px 12px; font-size: 0.7rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.02); }
+.blink-dot { width: 6px; height: 6px; background: var(--color-danger); border-radius: 50%; animation: pulse 1s infinite alternate; }
+.console-body { padding: 8px; font-family: monospace; font-size: 0.7rem; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .log-info { color: #38bdf8; }
-.log-success { color: var(--color-success); }
 .log-warning { color: var(--color-warning); }
-.log-error { color: var(--color-danger); }
 
-@keyframes blink { from { opacity: 0.2; } to { opacity: 1; } }
+@keyframes pulse { from { opacity: 0.3; } to { opacity: 1; } }
