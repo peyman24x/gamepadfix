@@ -7,7 +7,7 @@ import { AppState } from './state.js';
 import { HidEngine } from '../hid/engine.js';
 import { SonyDecoder } from '../controllers/sony.js';
 import { XboxDecoder } from '../controllers/xbox.js';
-import { AnalogCanvas } from '../display/canvas.js';
+import { AnalogCanvas } from '../display/Canvas.js';
 import { CalibrationWizard } from './wizard.js'; // [تزریق موتور کالیبراسیون فاز ۵]
 
 const AppCore = {
