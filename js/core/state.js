@@ -4,12 +4,31 @@
  */
 
 export const AppState = {
-    // وضعیت ارتباطی سیستم مانیتورینگ
-    connection: {
-        status: 'disconnected', // 'disconnected' | 'connecting' | 'connected' | 'error'
-        type: '-',              // 'USB' | 'Bluetooth'
-        backend: 'hid'          // 'hid' | 'gamepad'
+    connection: { status: 'disconnected', backend: 'webhid', type: '' },
+    inputs: {
+        axes: { lx: 0, ly: 0, rx: 0, ry: 0 },
+        buttons: {},
+        triggers: { l2: 0, r2: 0 }
     },
+    analysis: {
+        left: { historyTrail: [], centerOffset: 0, circularError: 0, pollingRate: 0 },
+        right: { historyTrail: [], centerOffset: 0, circularError: 0, pollingRate: 0 }
+    },
+    // این بخش را اگر ندارید به state.js اضافه کنید:
+    calibration: {
+        offsetLX: 0,
+        offsetLY: 0,
+        offsetRX: 0,
+        offsetRY: 0
+    },
+    battery: { status: 'unknown', percentage: 0, voltage: '0V' },
+    deviceInfo: { controllerName: 'Unknown', vendorId: '-', productId: '-', firmware: {}, hardware: {} },
+    
+    log(message, type = 'info') {
+        console.log(`[${type.toUpperCase()}] ${message}`);
+        // اگر سیستم لاگر UI دارید اینجا فراخوانی می‌شود
+    }
+};
 
     // پایگاه داده عمیق سخت‌افزار و فریمور استخراج‌شده از Feature Reports
     deviceInfo: {
