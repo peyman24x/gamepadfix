@@ -1,6 +1,6 @@
 /**
  * HID-Fix App Orchestrator (ES2024 Phase 5 Fully Integrated Engine)
- * اتصال نهایی WebHID، کالیبراسیون ویزارد، رندرهای کانوس و سیستم لاگ کارگاهی
+ * کالیبراسیون ویزارد، رندرهای کانوس و سیستم لاگ کارگاهی
  */
 
 import { AppState } from './state.js';
@@ -8,7 +8,7 @@ import { HidEngine } from '../hid/engine.js';
 import { SonyDecoder } from '../controllers/sony.js';
 import { XboxDecoder } from '../controllers/xbox.js';
 import { AnalogCanvas } from '../display/canvas.js';
-import { CalibrationWizard } from './wizard.js'; // [تزریق موتور کالیبراسیون فاز ۵]
+import { CalibrationWizard } from './wizard.js';
 
 const AppCore = {
     init() {
@@ -17,7 +17,7 @@ const AppCore = {
         HidEngine.init();
         AnalogCanvas.init('canvas-left', 'canvas-right');
 
-        // اتصال دکمه‌های ناوبری ویزارد کالیبراسیون به موتور منطقی
+        // اتصال دکمه‌های ناوبری ویزارد کالیبراسیون
         const btnStartCalib = document.getElementById('btn-start-calibration');
         if (btnStartCalib) {
             btnStartCalib.addEventListener('click', () => CalibrationWizard.start());
@@ -41,12 +41,12 @@ const AppCore = {
             }
         };
 
+        // اصلاح بومی‌سازی پکت بدون تخریب آلاینمنت مپینگ
         HidEngine.onInputReceived = (vendorId, reportId, dataBuffer) => {
-            const view = new DataView(dataBuffer.buffer);
             if (vendorId === 0x054C) {
-                SonyDecoder.decodeInput(reportId, view);
+                SonyDecoder.decodeInput(reportId, dataBuffer);
             } else if (vendorId === 0x045E) {
-                XboxDecoder.decodeInput(reportId, view);
+                XboxDecoder.decodeInput(reportId, dataBuffer);
             }
         };
 
@@ -66,29 +66,21 @@ const AppCore = {
         });
     },
 
-runUpdateLoop() {
+    runUpdateLoop() {
         const loop = () => {
             this.syncStateWithUI();
             this.renderHardwareButtonsMap();
             
             if (AppState.connection.status === 'connected') {
-                // [کد دفاعی فاز ۵]: تضمین وجود شیء کالیبراسیون برای جلوگیری از کرش لوپ ۶۰FPS
-                const calib = AppState.calibration || { offsetLX: 0, offsetLY: 0, offsetRX: 0, offsetRY: 0 };
+                const calibratedLX = AppState.inputs.axes.lx - AppState.calibration.offsetLX;
+                const calibratedLY = AppState.inputs.axes.ly - AppState.calibration.offsetLY;
+                const calibratedRX = AppState.inputs.axes.rx - AppState.calibration.offsetRX;
+                const calibratedRY = AppState.inputs.axes.ry - AppState.calibration.offsetRY;
 
-                // اعمال پویای ضریب اصلاح با فالبک صفر برای امنیت ۱۰۰٪
-                const calibratedLX = AppState.inputs.axes.lx - (calib.offsetLX || 0);
-                const calibratedLY = AppState.inputs.axes.ly - (calib.offsetLY || 0);
-                const calibratedRX = AppState.inputs.axes.rx - (calib.offsetRX || 0);
-                const calibratedRY = AppState.inputs.axes.ry - (calib.offsetRY || 0);
-
-                // رندر گرافیکی کانوس‌ها با مقادیر اصلاح‌شده
                 AnalogCanvas.updateAndRender('left', calibratedLX, calibratedLY);
                 AnalogCanvas.updateAndRender('right', calibratedRX, calibratedRY);
 
-                // مانیتورینگ آنلاین بافرها در مراحل فعال کالیبراسیون
-                if (typeof CalibrationWizard !== 'undefined' && CalibrationWizard.captureLiveBounds) {
-                    CalibrationWizard.captureLiveBounds();
-                }
+                CalibrationWizard.captureLiveBounds();
             }
             
             requestAnimationFrame(loop);
