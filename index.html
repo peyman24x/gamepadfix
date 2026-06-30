@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HID-Fix // سامانه کالیبراسیون و عیب‌یابی سخت‌افزاری</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="disconnected">
+
+    <div id="connection-overlay" class="overlay-container">
+        <div class="overlay-card">
+            <div class="pulse-ring"></div>
+            <h2>در انتظار اتصال کنترلر...</h2>
+            <p>لطفاً کنترلر (PS4 / PS5 / Xbox) خود را از طریق کابل USB یا بلوتوث متصل کرده و دکمه زیر را بزنید.</p>
+            <button id="btn-connect" class="btn-primary">اتصال سخت‌افزاری (WebHID)</button>
+        </div>
+    </div>
+
+    <main class="app-layout">
+        
+        <aside class="sidebar-panel">
+            <header class="brand-header">
+                <h1>HID-FIX <span class="version-tag">v1.0.0</span></h1>
+                <div class="status-indicator">
+                    <span id="connection-badge" class="badge badge-disconnected">Disconnected</span>
+                </div>
+            </header>
+
+            <section class="glass-card telemetry-card">
+                <h3>پایش انرژی و اتصال</h3>
+                <div class="telemetry-grid">
+                    <div class="tel-item"><span>نوع اتصال:</span> <strong id="val-conn-type">-</strong></div>
+                    <div class="tel-item"><span>وضعیت شارژ:</span> <strong id="val-charge-status">-</strong></div>
+                    <div class="tel-item"><span>درصد باتری:</span> <strong id="val-battery-lvl">-</strong></div>
+                    <div class="tel-item"><span>ولتاژ منبع:</span> <strong id="val-voltage">-</strong></div>
+                </div>
+            </section>
+
+            <section class="glass-card wizard-card">
+                <h3>ویزارد کالیبراسیون سخت‌افزار (PS4/PS5)</h3>
+                <div class="wizard-progress">
+                    <div class="progress-bar" id="wizard-progress-bar" style="width: 15%;"></div>
+                </div>
+                <div class="wizard-steps-container">
+                    <div id="wizard-step-text" class="step-desc">در انتظار تایید اتصال امن سخت‌افزار...</div>
+                    <div id="vStatus" class="step-alert-box">سیستم آماده شروع فرآیند است.</div>
+                </div>
+                <div class="wizard-actions">
+                    <button id="btn-wiz-prev" class="btn-secondary" disabled>قبلی</button>
+                    <button id="btn-wiz-next" class="btn-wizard" disabled>شروع کالیبراسیون</button>
+                    <button id="btn-wiz-cancel" class="btn-danger" style="display:none;">لغو / ریست</button>
+                </div>
+            </section>
+
+            <section class="glass-card info-card">
+                <div class="tabs-header">
+                    <button class="tab-btn active" data-tab="tab-meta">مشخصات کلیدی</button>
+                    <button class="tab-btn" data-tab="tab-fw">Firmware</button>
+                    <button class="tab-btn" data-tab="tab-hw">Hardware</button>
+                </div>
+                
+                <div class="tabs-content">
+                    <div id="tab-meta" class="tab-pane active">
+                        <ul class="info-list">
+                            <li><span>Controller:</span> <strong id="info-name">-</strong></li>
+                            <li><span>Vendor ID:</span> <strong id="info-vid">-</strong></li>
+                            <li><span>Product ID:</span> <strong id="info-pid">-</strong></li>
+                            <li><span>USB/HID Ver:</span> <strong id="info-hid-ver">-</strong></li>
+                        </ul>
+                    </div>
+                    <div id="tab-fw" class="tab-pane">
+                        <ul class="info-list">
+                            <li><span>FW Version:</span> <strong id="fw-ver">-</strong></li>
+                            <li><span>Build Date:</span> <strong id="fw-date">-</strong></li>
+                            <li><span>SBL FW Ver:</span> <strong id="fw-sbl">-</strong></li>
+                            <li><span>Touchpad FW:</span> <strong id="fw-touchpad">-</strong></li>
+                            <li><span>Spider/Venom:</span> <strong id="fw-chips">-</strong></li>
+                        </ul>
+                    </div>
+                    <div id="tab-hw" class="tab-pane">
+                        <ul class="info-list">
+                            <li><span>MCU Unique ID:</span> <strong id="hw-mcu">-</strong></li>
+                            <li><span>Serial Number:</span> <strong id="hw-serial">-</strong></li>
+                            <li><span>PCB ID / Model:</span> <strong id="hw-pcb">-</strong></li>
+                            <li><span>Battery Barcode:</span> <strong id="hw-bat-code">-</strong></li>
+                            <li><span>Bluetooth Addr:</span> <strong id="hw-bt-addr">-</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="glass-card log-card">
+                <h3>Live System Log Box</h3>
+                <div id="sys-log" class="terminal-box"></div>
+            </section>
+        </aside>
+
+        <section class="display-panel">
+            <div class="analog-monitors-container">
+                <div class="glass-card monitor-box">
+                    <h4>Left Stick Real-time Vector Analysis</h4>
+                    <div class="canvas-wrapper">
+                        <canvas id="canvas-left" width="280" height="280"></canvas>
+                    </div>
+                    <div class="metrics-grid">
+                        <div>X: <span id="axis-lx">0.00</span> | Y: <span id="axis-ly">0.00</span></div>
+                        <div>خطای دایره: <span id="err-l-circ" class="text-success">0.00%</span></div>
+                        <div>آفست مرکز: <span id="err-l-offset">0.00</span></div>
+                        <div>نرخ نمونه‌برداری: <span id="rate-l-poll">0Hz</span></div>
+                    </div>
+                    <div class="direction-matrix" id="matrix-left">
+                        <span data-dir="NW">↖</span><span data-dir="N">↑</span><span data-dir="NE">↗</span>
+                        <span data-dir="W">←</span><span data-dir="C" class="active">●</span><span data-dir="E">→</span>
+                        <span data-dir="SW">↙</span><span data-dir="S">↓</span><span data-dir="SE">↘</span>
+                    </div>
+                </div>
+
+                <div class="glass-card monitor-box">
+                    <h4>Right Stick Real-time Vector Analysis</h4>
+                    <div class="canvas-wrapper">
+                        <canvas id="canvas-right" width="280" height="280"></canvas>
+                    </div>
+                    <div class="metrics-grid">
+                        <div>X: <span id="axis-rx">0.00</span> | Y: <span id="axis-ry">0.00</span></div>
+                        <div>خطای دایره: <span id="err-r-circ" class="text-success">0.00%</span></div>
+                        <div>آفست مرکز: <span id="err-r-offset">0.00</span></div>
+                        <div>کیفیت سیگنال: <span id="sig-r-qual">100%</span></div>
+                    </div>
+                    <div class="direction-matrix" id="matrix-right">
+                        <span data-dir="NW">↖</span><span data-dir="N">↑</span><span data-dir="NE">↗</span>
+                        <span data-dir="W">←</span><span data-dir="C" class="active">●</span><span data-dir="E">→</span>
+                        <span data-dir="SW">↙</span><span data-dir="S">↓</span><span data-dir="SE">↘</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card visualizer-card">
+                <h3>Hardware Response Matrix Map</h3>
+                <div class="button-mapping-grid">
+                    <div class="btn-group">
+                        <div id="btn-dpad-up" class="hardware-btn">↑ D-Pad</div>
+                        <div id="btn-dpad-down" class="hardware-btn">↓ D-Pad</div>
+                        <div id="btn-dpad-left" class="hardware-btn">← D-Pad</div>
+                        <div id="btn-dpad-right" class="hardware-btn">→ D-Pad</div>
+                    </div>
+                    <div class="btn-group">
+                        <div id="btn-action-top" class="hardware-btn">△ / Y</div>
+                        <div id="btn-action-bottom" class="hardware-btn">✕ / A</div>
+                        <div id="btn-action-left" class="hardware-btn">□ / X</div>
+                        <div id="btn-action-right" class="hardware-btn">◯ / B</div>
+                    </div>
+                    <div class="btn-group">
+                        <div id="btn-l1" class="hardware-btn">L1 / LB</div>
+                        <div id="btn-r1" class="hardware-btn">R1 / RB</div>
+                        <div id="btn-l3" class="hardware-btn">L3 (Stick)</div>
+                        <div id="btn-r3" class="hardware-btn">R3 (Stick)</div>
+                    </div>
+                    <div class="btn-group triggers-bar-group">
+                        <div class="trigger-bar-wrapper">
+                            <label>L2 / LT</label>
+                            <div class="bar-bg"><div id="bar-l2" class="bar-fill"></div></div>
+                        </div>
+                        <div class="trigger-bar-wrapper">
+                            <label>R2 / RT</label>
+                            <div class="bar-bg"><div id="bar-r2" class="bar-fill"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script type="module" src="js/core/app.js"></script>
+</body>
+</html>
