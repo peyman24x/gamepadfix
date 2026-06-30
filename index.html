@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HID-Fix Pro // مرکز کالیبراسیون و عیب‌یابی پیشرفته کنترلر</title>
+    <title>HID-Fix Pro Elite // مانیتورینگ و کالیبراسیون سخت‌افزاری کنترلر</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="disconnected">
     <header class="app-header">
         <div class="header-logo">
-            <span class="logo-icon">🔮</span>
-            <h1>HID-Fix <span class="text-gradient">Pro Elite</span></h1>
-            <span class="version-tag">v3.5.0 Matrix</span>
+            <span class="logo-icon">⚡</span>
+            <h1>HID-Fix <span class="text-gradient">Matrix Pro</span></h1>
+            <span class="version-tag">DualShock Engine v3.8</span>
         </div>
         <div class="header-actions">
-            <div id="connection-badge" class="badge badge-disconnected">آفلاین // قطع اتصال</div>
+            <div id="connection-badge" class="badge badge-disconnected">آفلاین // قطع اتصال فیزیکی</div>
             <button id="btn-connect" class="btn btn-primary">
-                <span class="btn-icon">⚡</span> دسترسی فیزیکی WebHID
+                <span class="btn-icon">🔌</span> فراخوانی پورت WebHID
             </button>
         </div>
     </header>
@@ -25,19 +25,19 @@
         
         <section class="panel visualization-panel">
             <div class="panel-header">
-                <h2>📊 تحلیل برداری و هندسی سنسورها</h2>
-                <button id="btn-start-calibration" class="btn btn-secondary-outline">🔧 کالیبراسیون سخت‌افزاری تراشه</button>
+                <h2>📊 مانیتورینگ هندسی و ددزون سنسورها</h2>
+                <button id="btn-start-calibration" class="btn btn-secondary-outline">🔧 شروع فرآیند ۷ مرحله‌ای کالیبراسیون</button>
             </div>
             
             <div class="canvases-container">
-                <div class="canvas-card glass-card" data-stick="left">
+                <div class="canvas-card glass-card">
                     <div class="card-title">
                         <span class="stick-indicator left-indicator"></span>
                         <h3>پوتانسیومتر چپ (L-Stick)</h3>
                         <span id="val-hz-left" class="hz-counter">0 Hz</span>
                     </div>
                     <div class="canvas-wrapper">
-                        <canvas id="canvas-left" width="280" height="280"></canvas>
+                        <canvas id="canvas-left" width="260" height="260"></canvas>
                     </div>
                     <div id="matrix-left" class="direction-matrix">
                         <span data-dir="NW">NW</span><span data-dir="N">N</span><span data-dir="NE">NE</span>
@@ -46,14 +46,14 @@
                     </div>
                 </div>
 
-                <div class="canvas-card glass-card" data-stick="right">
+                <div class="canvas-card glass-card">
                     <div class="card-title">
                         <span class="stick-indicator right-indicator"></span>
                         <h3>پوتانسیومتر راست (R-Stick)</h3>
                         <span id="val-hz-right" class="hz-counter">0 Hz</span>
                     </div>
                     <div class="canvas-wrapper">
-                        <canvas id="canvas-right" width="280" height="280"></canvas>
+                        <canvas id="canvas-right" width="260" height="260"></canvas>
                     </div>
                     <div id="matrix-right" class="direction-matrix">
                         <span data-dir="NW">NW</span><span data-dir="N">N</span><span data-dir="NE">NE</span>
@@ -62,106 +62,107 @@
                     </div>
                 </div>
             </div>
+
+            <div class="console-wrapper">
+                <div class="console-header">
+                    <span>بافر هسته مرکزی (Live Hardware Logs)</span>
+                    <span class="blink-dot"></span>
+                </div>
+                <div id="app-console" class="console-body">
+                    <div class="log-info">[SYSTEM] لایه پردازش آماده دریافت پکت‌های خام است.</div>
+                </div>
+            </div>
         </section>
 
         <section class="panel control-panel">
             <div class="panel-header">
-                <h2 id="device-name">در انتظار سنترگیری کابل سخت‌افزار...</h2>
+                <h2 id="device-name">در انتظار شناسایی آی‌سی سخت‌افزار...</h2>
             </div>
 
-            <div class="glass-card controller-mapper-wrapper">
-                <h3>🗺️ نقشه مپینگ فیزیکی و بافرهای همزمان دکمه‌ها</h3>
+            <div class="glass-card controller-blueprint-card">
+                <h3>🗺️ نقشه مپینگ زنده و وضعیت فیزیکی دکمه‌ها</h3>
                 <div class="virtual-gamepad">
                     
-                    <div class="gamepad-row bumpers-triggers">
-                        <div class="trigger-node">
-                            <span class="btn-lbl">L2 Trigger</span>
-                            <div class="trigger-track"><div id="bar-l2" class="trigger-fill" style="width: 0%"></div></div>
+                    <div class="gamepad-row triggers-layer">
+                        <div class="trigger-container">
+                            <span class="lbl-node">L2 Trigger</span>
+                            <div class="trigger-track"><div id="bar-l2" class="trigger-fill"></div></div>
                             <span id="txt-l2" class="trigger-val">0%</span>
                         </div>
-                        <div class="trigger-node">
-                            <span class="btn-lbl">R2 Trigger</span>
-                            <div class="trigger-track"><div id="bar-r2" class="trigger-fill" style="width: 0%"></div></div>
+                        <div class="trigger-container">
+                            <span class="lbl-node">R2 Trigger</span>
+                            <div class="trigger-track"><div id="bar-r2" class="trigger-fill"></div></div>
                             <span id="txt-r2" class="trigger-val">0%</span>
                         </div>
                     </div>
-                    <div class="gamepad-row bumpers">
-                        <span id="btn-l1" class="gamepad-btn-wire">L1 Bumper</span>
-                        <span id="btn-r1" class="gamepad-btn-wire">R1 Bumper</span>
+                    
+                    <div class="gamepad-row bumpers-layer">
+                        <span id="btn-l1" class="wire-btn">L1 Bumper</span>
+                        <span id="btn-r1" class="wire-btn">R1 Bumper</span>
                     </div>
 
-                    <div class="gamepad-main-layout">
-                        <div class="dpad-cross">
-                            <div id="btn-dpadUp" class="dpad-node up">▲</div>
-                            <div class="dpad-row-mid">
-                                <div id="btn-dpadLeft" class="dpad-node left">◀</div>
-                                <div class="dpad-center-void"></div>
-                                <div id="btn-dpadRight" class="dpad-node right">▶</div>
+                    <div class="gamepad-chassis">
+                        <div class="dpad-cluster">
+                            <div id="btn-dpadUp" class="dpad-btn up">▲</div>
+                            <div class="dpad-mid-row">
+                                <div id="btn-dpadLeft" class="dpad-btn left">◀</div>
+                                <div class="dpad-void"></div>
+                                <div id="btn-dpadRight" class="dpad-btn right">▶</div>
                             </div>
-                            <div id="btn-dpadDown" class="dpad-node down">▼</div>
+                            <div id="btn-dpadDown" class="dpad-btn down">▼</div>
                         </div>
 
-                        <div class="sticks-click-status">
-                            <span id="btn-l3" class="gamepad-btn-wire">L3 (کلیک چپ)</span>
-                            <span id="btn-r3" class="gamepad-btn-wire">R3 (کلیک راست)</span>
+                        <div class="center-clicks">
+                            <span id="btn-l3" class="wire-btn click-node">L3 Click</span>
+                            <span id="btn-r3" class="wire-btn click-node">R3 Click</span>
                         </div>
 
                         <div class="action-cluster">
-                            <div id="btn-actionTop" class="action-node top">Y / 📐</div>
-                            <div class="action-row-mid">
-                                <div id="btn-actionLeft" class="action-node left">X / ⬛</div>
-                                <div class="action-center-void"></div>
-                                <div id="btn-actionRight" class="action-node right">B / 🔴</div>
+                            <div id="btn-actionTop" class="action-btn top">📐 / Y</div>
+                            <div class="action-mid-row">
+                                <div id="btn-actionLeft" class="action-btn left">⬛ / X</div>
+                                <div class="action-void"></div>
+                                <div id="btn-actionRight" class="action-btn right">🔴 / B</div>
                             </div>
-                            <div id="btn-actionBottom" class="action-node bottom">A / ❌</div>
+                            <div id="btn-actionBottom" class="action-btn bottom">❌ / A</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="glass-card telemetry-card">
-                <h3>🎯 ماتریس تصحیح خطا و انحراف لبه (Circular Matrix)</h3>
-                <div class="error-metrics-grid">
-                    <div class="metric-card">
-                        <span class="lbl">آفست مرکز آنالوگ چپ</span>
-                        <div id="err-l-offset" class="val">0.0000</div>
+                <h3>🎯 ماتریس ارزیابی خطا و ولتاژ تراشه</h3>
+                <div class="metrics-grid">
+                    <div class="metric-node">
+                        <span class="m-lbl">آفست مرکز آنالوگ چپ</span>
+                        <div id="err-l-offset" class="m-val">0.0000</div>
                     </div>
-                    <div class="metric-card">
-                        <span class="lbl">آفست مرکز آنالوگ راست</span>
-                        <div id="err-r-offset" class="val">0.0000</div>
+                    <div class="metric-node">
+                        <span class="m-lbl">آفست مرکز آنالوگ راست</span>
+                        <div id="err-r-offset" class="m-val">0.0000</div>
                     </div>
-                    <div class="metric-card warning">
-                        <span class="lbl">نرخ خطای محیطی چپ</span>
-                        <div id="err-l-circ" class="val">0.00%</div>
+                    <div class="metric-node alert">
+                        <span class="m-lbl">نرخ خطای دایره‌ای چپ</span>
+                        <div id="err-l-circ" class="m-val">0.00%</div>
                     </div>
-                    <div class="metric-card warning">
-                        <span class="lbl">نرخ خطای محیطی راست</span>
-                        <div id="err-r-circ" class="val">0.00%</div>
+                    <div class="metric-node alert">
+                        <span class="m-lbl">نرخ خطای دایره‌ای راست</span>
+                        <div id="err-r-circ" class="m-val">0.00%</div>
                     </div>
                 </div>
             </div>
 
             <div class="glass-card telemetry-card">
-                <h3>🔒 اطلاعات سخت‌افزاری و وضعیت مدار تغذیه</h3>
-                <div class="grid-2col">
-                    <ul class="telemetry-list">
-                        <li><span>شناسه چیپست (MCU):</span> <strong id="hw-mcu" class="code-font">-</strong></li>
-                        <li><span>نسخه سورس فریمور:</span> <strong id="fw-ver" class="code-font">-</strong></li>
+                <h3>🔒 اطلاعات پکت‌های فریمور و منبع تغذیه</h3>
+                <div class="hardware-info-split">
+                    <ul class="info-specs">
+                        <li><span>نوع فیزیکی ارتباط:</span> <strong id="hw-mcu" class="code-font">-</strong></li>
+                        <li><span>شناسه کارخانه (Vendor ID):</span> <strong id="fw-date" class="code-font">-</strong></li>
                     </ul>
-                    <ul class="telemetry-list">
-                        <li><span>کد شناسه کارخانه (PID):</span> <strong id="fw-date" class="code-font">-</strong></li>
-                        <li><span>منبع تغذیه تایید شده:</span> <strong id="val-charge-status" style="color: var(--color-cyan); font-weight:700;">-</strong></li>
+                    <ul class="info-specs">
+                        <li><span>شناسه محصول (Product ID):</span> <strong id="fw-ver" class="code-font">-</strong></li>
+                        <li><span>وضعیت باتری و جریان:</span> <strong id="val-charge-status" class="code-font" style="color: var(--color-cyan)">-</strong></li>
                     </ul>
-                </div>
-            </div>
-
-            <div class="console-wrapper">
-                <div class="console-header">
-                    <span>کنسول مانیتورینگ زنده (Live Core Logs)</span>
-                    <span class="blink-dot"></span>
-                </div>
-                <div id="app-console" class="console-body">
-                    <div class="log-info">[INFO] لایه گرافیکی سیستم آماده شنود پکت‌های WebHID می‌باشد.</div>
                 </div>
             </div>
         </section>
