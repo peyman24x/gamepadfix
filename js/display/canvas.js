@@ -79,13 +79,13 @@ class StickVisualizer {
     }
 
     /**
-     * رسم محدوده ددزون‌های استاندارد ۵ درصدی سخت‌افزاری (برای تشخیص سریع دریفت ناشی از نویز پوتانسیومتر)
+     * رسم محدوده ددزون‌های استاندارد ۵ درصدی سخت‌افزاری
      */
     drawDeadzones() {
         const { ctx, dimensions, theme } = this;
         const { centerX, centerY, radius } = dimensions;
-        
         const deadzoneRadius = radius * 0.05; // ۵ درصد محدوده لرزش ولتاژ
+
         ctx.fillStyle = theme.deadzone;
         ctx.beginPath();
         ctx.arc(centerX, centerY, deadzoneRadius, 0, Math.PI * 2);
@@ -93,95 +93,91 @@ class StickVisualizer {
     }
 
     /**
-     * ثبت پوزیشن در آرایه بافر و رندر سایه حرکتی (History Trail) با گرادیان آلفا
+     * ثبت پوزیشن در آرایه بافر و رندر سایه حرکتی (Motion History Trail)
      */
-    drawTrail(pointerX, pointerY) {
+    drawTrail(px, py) {
         const { ctx, theme } = this;
-        
-        this.trail.push({ x: pointerX, y: pointerY });
-        if (this.trail.length > this.maxTrailPoints) {
-            this.trail.shift();
-        }
+        this.trail.push({ x: px, y: py });
+        if (this.trail.length > this.maxTrailPoints) this.trail.shift();
 
         if (this.trail.length < 2) return;
 
-        ctx.strokeStyle = theme.accent;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        
+        ctx.strokeStyle = theme.glow;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(this.trail[0].x, this.trail[0].y);
         for (let i = 1; i < this.trail.length; i++) {
-            // اعمال شفافیت متغیر متناسب با فریم زمانی ثبت وکتور
-            ctx.globalAlpha = i / this.trail.length;
             ctx.lineTo(this.trail[i].x, this.trail[i].y);
         }
         ctx.stroke();
-        ctx.globalAlpha = 1.0; // بازنشانی آلفای رندر پلتفرم
     }
 
     /**
-     * رسم نشانگر فیزیکی کورسر استیک به همراه افکت سایه نوری (Glow Effect)
+     * رسم نشانه فیزیکی موقعیت نهایی آنالوگ (Target Crosshair Pointer)
      */
-    drawPointer(pointerX, pointerY) {
+    drawPointer(px, py) {
         const { ctx, theme } = this;
         
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 15;
         ctx.shadowColor = theme.accent;
         ctx.fillStyle = theme.accent;
-        
         ctx.beginPath();
-        ctx.arc(pointerX, pointerY, 6, 0, Math.PI * 2);
+        ctx.arc(px, py, 6, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.shadowBlur = 0; // حذف گپ پردازشی سایه پس از اتمام رندر کورسر
-
-        // رسم حلقه سفید بیرونی کورسر تفکیک‌کننده دید کابر
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(pointerX, pointerY, 8, 0, Math.PI * 2);
-        ctx.stroke();
+        // بازنشانی سایه‌ها برای جلوگیری از افت نرخ فریم
+        ctx.shadowBlur = 0;
     }
 
     /**
-     * محاسبه زنده میزان فاصله اقلیدسی نقطه جاری از مبدا (Live Center Offset)
+     * رندر متنی ماتریس مختصات به صورت هاد (HUD Coordinates Engine)
      */
-    calculateVectorMetrics(x, y) {
-        const offset = Math.sqrt(x * x + y * y);
+    renderHudText(rawX, rawY) {
+        const { ctx, dimensions, theme } = this;
+        ctx.fillStyle = theme.text;
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`X: ${rawX.toFixed(4)}`, 15, dimensions.height - 25);
+        ctx.fillText(`Y: ${rawY.toFixed(4)}`, 15, dimensions.height - 12);
+    }
+
+    /**
+     * محاسبات برداری ریاضی میزان انحراف سنترگیری (Center Displacement)
+     */
+    calculateVectorMetrics(rawX, rawY) {
+        const drift = Math.sqrt(rawX * rawX + rawY * rawY);
         if (this.stickKey === 'left') {
-            AppState.analysis.left.centerOffset = offset;
+            AppState.analysis.left.centerOffset = drift;
         } else {
-            AppState.analysis.right.centerOffset = offset;
+            AppState.analysis.right.centerOffset = drift;
         }
     }
 
     /**
-     * مپینگ زنده فریم به خانه منطقی فعال در ماتریس جهت‌های ۳x۳ رابط کاربری
+     * نگاشت همزمان به ماتریس جهت‌های جغرافیایی ۳x۳ رابط کاربری
      */
-    updateDirectionMatrix(x, y) {
-        const threshold = 0.35; // حد آستانه انحراف فرکانسی مگنت یا زغال
-        let currentDir = 'C';
+    updateDirectionMatrix(rawX, rawY) {
+        const threshold = 0.25;
+        let dir = 'C';
 
-        if (y < -threshold) {
-            if (x < -threshold) currentDir = 'NW';
-            else if (x > threshold) currentDir = 'NE';
-            else currentDir = 'N';
-        } else if (y > threshold) {
-            if (x < -threshold) currentDir = 'SW';
-            else if (x > threshold) currentDir = 'SE';
-            else currentDir = 'S';
+        if (rawY < -threshold) {
+            if (rawX < -threshold) dir = 'NW';
+            else if (rawX > threshold) dir = 'NE';
+            else dir = 'N';
+        } else if (rawY > threshold) {
+            if (rawX < -threshold) dir = 'SW';
+            else if (rawX > threshold) dir = 'SE';
+            else dir = 'S';
         } else {
-            if (x < -threshold) currentDir = 'W';
-            else if (x > threshold) currentDir = 'E';
+            if (rawX < -threshold) dir = 'W';
+            else if (rawX > threshold) dir = 'E';
         }
 
         const matrixContainer = document.getElementById(`matrix-${this.stickKey}`);
         if (matrixContainer) {
             const spans = matrixContainer.querySelectorAll('span');
             spans.forEach(span => {
-                if (span.dataset.dir === currentDir) {
+                if (span.getAttribute('data-dir') === dir) {
                     span.classList.add('active');
                 } else {
                     span.classList.remove('active');
@@ -191,9 +187,7 @@ class StickVisualizer {
     }
 
     /**
-     * ارکستراتور اصلی پردازش فریم رندر در فرکانس بالا (۶۰FPS / ۱۲۰FPS)
-     * @param {number} rawX - مقدار دکود شده محور افقی از فریمور کنترلر (-1 تا +1)
-     * @param {number} rawY - مقدار دکود شده محور عمودی از فریمور کنترلر (-1 تا +1)
+     * ارکستراتور اصلی پردازش فریم رندر در فرکانس بالا
      */
     updateAndRender(rawX, rawY) {
         this.clear();
@@ -206,31 +200,25 @@ class StickVisualizer {
 
         this.drawTrail(pointerX, pointerY);
         this.drawPointer(pointerX, pointerY);
+        this.renderHudText(rawX, rawY);
         
         this.calculateVectorMetrics(rawX, rawY);
         this.updateDirectionMatrix(rawX, rawY);
     }
 }
 
-// ساختار خروجی و متمرکز مدیریت بوم‌ها جهت تعامل با هسته نرم‌افزار (app.js)
 export const AnalogCanvas = {
     instances: {},
 
-    /**
-     * مقداردهی اولیه و وهله‌سازی شیء‌گرا برای هر دو استیک
-     */
     init(canvasLeftId, canvasRightId) {
         this.instances['left'] = new StickVisualizer(canvasLeftId, 'left');
         this.instances['right'] = new StickVisualizer(canvasRightId, 'right');
     },
 
-    /**
-     * متد فرآیند ارجاع پکت دریافتی به کلاس کپسوله شده شیء هدف
-     */
-    updateAndRender(stickKey, x, y) {
-        const instance = this.instances[stickKey];
-        if (instance) {
-            instance.updateAndRender(x, y);
+    updateAndRender(stickKey, rawX, rawY) {
+        const visualizer = this.instances[stickKey];
+        if (visualizer) {
+            visualizer.updateAndRender(rawX, rawY);
         }
     }
 };
