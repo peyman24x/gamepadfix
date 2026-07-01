@@ -1,243 +1,198 @@
 /**
  * js/core/wizard.js
- * HID-Fix 7-Step Hardware Calibration Wizard Engine (ES2024 - OOP Architecture)
- * شبیه‌ساز ماشین وضعیت ابزار کارگاهی جهت محاسبه ماتریس‌های تصحیح آنالوگ استیک
+ * DualShock / DualSense Calibration Tool - 6-Step Calibration State Machine
+ * مدیریت ماشین وضعیت کالیبراسیون کارگاهی، ثبت بافرهای فیزیکی و محاسبه ضرایب تصحیح دریفت
  */
 
 import { AppState } from './state.js';
 
-class CalibrationWizardEngine {
-    constructor() {
-        this.currentStep = 1;
-        this.totalSteps = 7;
-        this.isActive = false;
+export const CalibrationWizard = {
+    currentStep: 1,
+    totalSteps: 6,
+    isActive: false,
 
-        // بافرهای هندسی کپسوله‌شده برای ذخیره‌سازی داده‌های فیزیکی سنسورها
-        this.samples = {
-            left: { minX: 0, maxX: 0, minY: 0, maxY: 0, centerX: 0, centerY: 0 },
-            right: { minX: 0, maxX: 0, minY: 0, maxY: 0, centerX: 0, centerY: 0 }
-        };
+    // بافرهای موقت برای ذخیره حد بالا و پایین سیگنال ولتاژ پتانسیومترها در طول فرآیند
+    samples: {
+        left: { minX: 0, maxX: 0, minY: 0, maxY: 0, centerX: 0, centerY: 0 },
+        right: { minX: 0, maxX: 0, minY: 0, maxY: 0, centerX: 0, centerY: 0 }
+    },
 
-        // دیتابیس راهنماهای متنی مراحل کالیبراسیون (منطبق بر داکیومنت‌های فنی سونی و مایکروسافت)
-        this.stepGuides = [
-            { title: 'آماده‌سازی لایه سخت‌افزار', desc: 'لطفاً کنترلر را روی یک سطح کاملاً صاف و بدون لرزش قرار داده و استیک‌ها را رها کنید. سپس روی دکمه بعدی کلیک کنید.' },
-            { title: 'ثبت نقطه صفر آنالوگ چپ', desc: 'بدون دست زدن به آنالوگ‌ها، دکمه بعدی را بزنید تا میانگین آفست ولتاژ هسته مکانیکی چپ در حافظه موقت ثبت شود.' },
-            { title: 'کالیبراسیون دامنه استیک چپ', desc: 'استیک چپ را ۲ الی ۳ بار به صورت کامل ۳۶۰ درجه بچرخانید تا بیشترین محدوده دامنه مغناطیسی (Max/Min) شناسایی شود، سپس دکمه بعدی را بزنید.' },
-            { title: 'ثبت نقطه صفر آنالوگ راست', desc: 'استیک‌ها را مجدداً رها کرده و دکمه بعدی را بزنید تا خروجی ولتاژ و مقاومت تراشه راست سنترگیری شود.' },
-            { title: 'کالیبراسیون دامنه استیک راست', desc: 'استیک راست را ۲ الی ۳ بار به صورت کامل ۳۶۰ درجه بچرخانید تا بیشترین محدوده دامنه مغناطیسی ثبت شود، سپس دکمه بعدی را بزنید.' },
-            { title: 'محاسبه ماتریس تصحیح فرکانسی', desc: 'سیستم در حال ارزیابی بافرهای ثبت‌شده و اعمال اسکیلینگ نهایی به خطای دایره‌ای است. روی دکمه بعدی کلیک کنید...' },
-            { title: 'تزریق فریمور و پایان فرآیند', desc: 'عملیات با موفقیت پایان یافت! ماتریس اصلاح خطا به موتور رندر تزریق شد. برای اعمال تغییرات کارگاهی روی دکمه پایان کلیک کنید.' }
-        ];
-    }
+    // دایره المعارف و راهنمای گام‌به‌گام مراحل کالیبراسیون مطابق داکیومنت‌های فنی سونی
+    stepGuides: [
+        { title: 'شروع فرآیند کالیبراسیون', desc: 'لطفاً کنترلر را روی یک سطح کاملاً صاف و پایدار قرار داده و استیک‌ها را رها کنید. سپس دکمه "مرحله بعد" را جهت سنترگیری اولیه فشار دهید.' },
+        { title: 'ثبت مرکز استیک چپ (Left Center)', desc: 'بدون دست زدن به استیک‌ها، دکمه "مرحله بعد" را بزنید تا خروجی ولتاژ و مقاومت فیزیکی تراشه چپ در وضعیت استراحت صفر شود.' },
+        { title: 'کالیبراسیون دامنه استیک چپ (Left Range)', desc: 'استیک چپ را ۲ الی ۳ بار به صورت کامل و دایره‌ای ۳۶۰ درجه بچرخانید تا بیشترین محدوده مغناطیسی مگنت‌ها ثبت شود. سپس دکمه "مرحله بعد" را بزنید.' },
+        { title: 'ثبت مرکز استیک راست (Right Center)', desc: 'استیک‌ها را مجدداً رها کنید و دکمه "مرحله بعد" را بزنید تا نقطه ثقل و ولتاژ تعادلی هسته آنالوگ راست نمونه‌برداری و قفل شود.' },
+        { title: 'کالیبراسیون دامنه استیک راست (Right Range)', desc: 'استیک راست را چند بار به صورت کامل در تمامی جهات ۳۶۰ درجه بچرخانید تا ماکزیمم دامنه دامنه پتانسیومتر ثبت شود. سپس دکمه "مرحله بعد" را بزنید.' },
+        { title: 'پردازش ماتریس و اعمال نهایی', desc: 'بافرهای فیزیکی با موفقیت ارزیابی شدند. برای تزریق زنده ضرایب تصحیح نرم‌افزاری به هسته پردازش داده، روی دکمه "پایان کالیبراسیون" کلیک کنید.' }
+    ],
 
     /**
-     * ورود به مود کارگاهی کالیبراسیون و آشکارسازی باکس ویزارد در UI
+     * فعال‌سازی مود کارگاهی و بازنشانی متغیرها
      */
     start() {
-        if (AppState.connection && !AppState.connection.isConnected) {
-            this.logToConsole('جهت شروع فرآیند کالیبراسیون، ابتدا کنترلر را متصل کنید.', 'warning');
+        if (!AppState.connection.isConnected) {
+            AppState.log('جهت شروع کالیبراسیون، ابتدا باید کنترلر را متصل کنید.', 'warning');
             return;
         }
-
         this.isActive = true;
         this.currentStep = 1;
         this.resetSamples();
         this.updateUI();
         
-        this.logToConsole('ویزارد کالیبراسیون سخت‌افزاری فعال شد. در حال پایش وضعیت سنسورها...', 'info');
-    }
+        AppState.log('ویزارد ۶ مرحله‌ای کالیبراسیون سخت‌افزاری تراشه فعال شد.', 'info');
+    },
 
     /**
-     * بازنشانی کلیه بافرهای فیزیکی نمونه‌برداری
-     */
-    resetSamples() {
-        const defaultStick = { minX: 0, maxX: 0, minY: 0, maxY: 0, centerX: 0, centerY: 0 };
-        this.samples.left = { ...defaultStick };
-        this.samples.right = { ...defaultStick };
-    }
-
-    /**
-     * انتقال گام به گام ماشین وضعیت به مرحله بعد + اجرای تسک‌های محاسباتی میانی
+     * انتقال به گام بعدی و اجرای لایف‌سایکل اختصاصی هر مرحله
      */
     nextStep() {
         if (!this.isActive) return;
 
-        // پردازش‌های منطقی انتهای هر گام، قبل از سوئیچ به گام بعدی
-        if (this.currentStep === 2) {
-            // ثبت پوزیشن جاری به عنوان آفست مرکزی استیک چپ
-            this.samples.left.centerX = AppState.inputs.axes.lx;
-            this.samples.left.centerY = AppState.inputs.axes.ly;
-            this.logToConsole('آفست سنتر آنالوگ چپ با موفقیت در بافر ذخیره شد.', 'success');
-        } 
-        else if (this.currentStep === 4) {
-            // ثبت پوزیشن جاری به عنوان آفست مرکزی استیک راست
-            this.samples.right.centerX = AppState.inputs.axes.rx;
-            this.samples.right.centerY = AppState.inputs.axes.ry;
-            this.logToConsole('آفست سنتر آنالوگ راست با موفقیت در بافر ذخیره شد.', 'success');
-        } 
-        else if (this.currentStep === 6) {
-            // فرآیند نهایی پردازش ریاضی و تولید کالیبراسیون
-            this.computeFinalMatrix();
-        } 
-        else if (this.currentStep === this.totalSteps) {
-            // پایان کار و کلوز کردن ویزارد
-            this.finish();
-            return;
-        }
+        // اجرای عملیات منطقی متناسب با خروج از مرحله فعلی
+        this.executeStepLogic(this.currentStep);
 
-        this.currentStep++;
-        this.updateUI();
-    }
+        if (this.currentStep < this.totalSteps) {
+            this.currentStep++;
+            this.updateUI();
+        } else {
+            // گام آخر: محاسبه ریاضی ماتریس تصحیح و اعمال به فریمور
+            this.finalizeCalibration();
+        }
+    },
 
     /**
-     * بازگشت به مرحله قبلی
+     * بازگشت به مرحله قبلی ویزارد
      */
     prevStep() {
         if (!this.isActive || this.currentStep <= 1) return;
         this.currentStep--;
         this.updateUI();
-    }
+    },
 
     /**
-     * خروج اضطراری و لغو فرآیند کالیبراسیون بدون ذخیره‌سازی داده‌ها
+     * ابورت کردن آنی فرآیند و پاکسازی بافرها برای جلوگیری از به هم ریختگی سیگنال
      */
     cancel() {
         this.isActive = false;
+        this.currentStep = 1;
         this.resetSamples();
-        
-        const wizardContainer = document.getElementById('wizard-container');
-        if (wizardContainer) wizardContainer.classList.remove('active');
-        
-        this.logToConsole('فرآیند کالیبراسیون توسط کاربر لغو شد. دستگاه به وضعیت عادی بازگشت.', 'warning');
-    }
+        AppState.log('فرآیند کالیبراسیون تراشه توسط کاربر لغو شد.', 'warning');
+    },
+
+    resetSamples() {
+        this.samples = {
+            left: { minX: 0, maxX: 0, minY: 0, maxY: 0, centerX: 0, centerY: 0 },
+            right: { minX: 0, maxX: 0, minY: 0, maxY: 0, centerX: 0, centerY: 0 }
+        };
+    },
 
     /**
-     * نمونه‌برداری مداوم از پکت‌های زنده سخت‌افزار (فراخوانی از داخل پکت ریدر اصلی)
+     * شنودر زنده پکت‌ها؛ این متد در فرکانس بالا (High Hz) توسط دکودر یا ارکستراتور 
+     * فراخوانی می‌شود تا مقادیر مینیمم/ماکزیمم فیزیکی چرخاندن استیک را شکار کند.
      */
     recordLiveSamples() {
         if (!this.isActive) return;
 
-        // ثبت دامنه‌های حرکتی استیک چپ در گام ۳
+        // گام ۳: ضبط دامنه استیک چپ
         if (this.currentStep === 3) {
             const lx = AppState.inputs.axes.lx;
             const ly = AppState.inputs.axes.ly;
-            this.samples.left.minX = Math.min(this.samples.left.minX, lx);
-            this.samples.left.maxX = Math.max(this.samples.left.maxX, lx);
-            this.samples.left.minY = Math.min(this.samples.left.minY, ly);
-            this.samples.left.maxY = Math.max(this.samples.left.maxY, ly);
+            const s = this.samples.left;
+            if (lx < s.minX) s.minX = lx;
+            if (lx > s.maxX) s.maxX = lx;
+            if (ly < s.minY) s.minY = ly;
+            if (ly > s.maxY) s.maxY = ly;
         }
-        // ثبت دامنه‌های حرکتی استیک راست در گام ۵
+        
+        // گام ۵: ضبط دامنه استیک راست
         if (this.currentStep === 5) {
             const rx = AppState.inputs.axes.rx;
             const ry = AppState.inputs.axes.ry;
-            this.samples.right.minX = Math.min(this.samples.right.minX, rx);
-            this.samples.right.maxX = Math.max(this.samples.right.maxX, rx);
-            this.samples.right.minY = Math.min(this.samples.right.minY, ry);
-            this.samples.right.maxY = Math.max(this.samples.right.maxY, ry);
+            const s = this.samples.right;
+            if (rx < s.minX) s.minX = rx;
+            if (rx > s.maxX) s.maxX = rx;
+            if (ry < s.minY) s.minY = ry;
+            if (ry > s.maxY) s.maxY = ry;
         }
-    }
+    },
 
     /**
-     * پردازش برداری عمیق پوتانسیومترها و استخراج ضرایب اسکیلینگ (Gain Scaling Factors)
+     * ثبت نقاط ثقل (اصلاح ددزون داخلی فیزیکی) در فازهای سکون
      */
-    computeFinalMatrix() {
-        this.logToConsole('در حال پردازش بافرهای سیگنال و اعمال الگوریتم نرمال‌سازی...', 'info');
+    executeStepLogic(step) {
+        switch(step) {
+            case 2: // کپچر کردن نقطه استراحت آنالوگ چپ
+                this.samples.left.centerX = AppState.inputs.axes.lx;
+                this.samples.left.centerY = AppState.inputs.axes.ly;
+                AppState.log(`نقطه صفر استیک چپ ثبت شد: X=${this.samples.left.centerX.toFixed(4)}, Y=${this.samples.left.centerY.toFixed(4)}`, 'packet');
+                break;
+            case 4: // کپچر کردن نقطه استراحت آنالوگ راست
+                this.samples.right.centerX = AppState.inputs.axes.rx;
+                this.samples.right.centerY = AppState.inputs.axes.ry;
+                AppState.log(`نقطه صفر استیک راست ثبت شد: X=${this.samples.right.centerX.toFixed(4)}, Y=${this.samples.right.centerY.toFixed(4)}`, 'packet');
+                break;
+        }
+    },
 
-        // فرمول کالیبراسیون بازه حرکتی سخت‌افزار برای استیک چپ
-        const rangeXLeft = this.samples.left.maxX - this.samples.left.minX;
-        const rangeYLeft = this.samples.left.maxY - this.samples.left.minY;
-        
-        // محاسبه ضریب گین (اگر بازه حرکتی صفر بود مقدار پیش‌فرض ۱ قرار می‌گیرد تا خطای Division by zero رخ ندهد)
-        const scaleXLeft = rangeXLeft > 0 ? 2.0 / rangeXLeft : 1.0;
-        const scaleYLeft = rangeYLeft > 0 ? 2.0 / rangeYLeft : 1.0;
+    /**
+     * مینی‌ماتریس استخراج دیتای نهایی و تولید مقادیر دقیق کالیبراسیون
+     */
+    finalizeCalibration() {
+        const calib = AppState.calibration.computedOffsets;
+        const sL = this.samples.left;
+        const sR = this.samples.right;
 
-        // فرمول کالیبراسیون بازه حرکتی سخت‌افزار برای استیک راست
-        const rangeXRight = this.samples.right.maxX - this.samples.right.minX;
-        const rangeYRight = this.samples.right.maxY - this.samples.right.minY;
-        const scaleXRight = rangeXRight > 0 ? 2.0 / rangeXRight : 1.0;
-        const scaleYRight = rangeYRight > 0 ? 2.0 / rangeYRight : 1.0;
+        // ۱. تزریق مستقیم مقادیر سنترگیری (آفست‌ها از نقطه صفر کم خواهند شد)
+        calib.left.offsetX = sL.centerX;
+        calib.left.offsetY = sL.centerY;
+        calib.right.offsetX = sR.centerX;
+        calib.right.offsetY = sR.centerY;
 
-        // تزریق رسمی ضرایب و آفست‌های استخراج‌شده به استیت سراسری نرم‌افزار جهت اصلاح بی‌درنگ پکت‌ها
-        AppState.calibration.computedOffsets.left = {
-            offsetX: this.samples.left.centerX,
-            offsetY: this.samples.left.centerY,
-            scaleX: scaleXLeft,
-            scaleY: scaleYLeft
-        };
+        // ۲. محاسبه اسکیلینگ برداری (Gain Multiplier) برای اصلاح دایره‌ای کامل (Circular Scaling)
+        // اگر کاربر استیک را کامل چرخاند، بازه عددی باید نزدیک به ۲.0 فیزیکی باشد
+        const rangeLX = (sL.maxX - sL.minX) || 2.0;
+        const rangeLY = (sL.maxY - sL.minY) || 2.0;
+        const rangeRX = (sR.maxX - sR.minX) || 2.0;
+        const rangeRY = (sR.maxY - sR.minY) || 2.0;
 
-        AppState.calibration.computedOffsets.right = {
-            offsetX: this.samples.right.centerX,
-            offsetY: this.samples.right.centerY,
-            scaleX: scaleXRight,
-            scaleY: scaleYRight
-        };
+        // محاسبه ضریب گین جهت رساندن سیگنال‌های ضعیف‌شده به مرز استاندارد ۱.۰ دایره
+        calib.left.scaleX = 2.0 / rangeLX;
+        calib.left.scaleY = 2.0 / rangeLY;
+        calib.right.scaleX = 2.0 / rangeRX;
+        calib.right.scaleY = 2.0 / rangeRY;
 
+        // فعال‌سازی پرچم کالیبراسیون در استیت جهت اعمال خودکار روی سیگنال‌های دکودر
         AppState.calibration.isCalibrated = true;
-        this.logToConsole('ماتریس اصلاح برداری با موفقیت تولید و با کدهای امپریکال ادغام شد.', 'success');
-    }
-
-    /**
-     * پایان فرآیند و ثبت نهایی تغییرات در کنترلر
-     */
-    finish() {
         this.isActive = false;
-        
-        const wizardContainer = document.getElementById('wizard-container');
-        if (wizardContainer) wizardContainer.classList.remove('active');
-        
-        this.logToConsole('تغییرات با موفقیت روی لایه نرم‌افزار فیکس شدند. دستگاه آماده استفاده است.', 'success');
-    }
+
+        AppState.log('✅ عملیات کالیبراسیون با موفقیت مانیتور و نهایی شد. ضرایب ریاضی به دکودر تزریق شدند.', 'success');
+    },
 
     /**
-     * متد کمکی جهت بروزرسانی همزمان فریم‌های لایه تعاملی UI بر اساس استیت ماشین کالیبراسیون
+     * اتصال خودکار و ایمن ماشین وضعیت به المان‌های پویای رابط کاربری (DOM HTML)
      */
     updateUI() {
-        const wizardContainer = document.getElementById('wizard-container');
-        const stepNumber = document.getElementById('wiz-step-number');
-        const title = document.getElementById('wiz-title');
-        const desc = document.getElementById('wiz-desc');
-        const progressBar = document.getElementById('wiz-progress');
-        const btnBack = document.getElementById('wiz-btn-back');
+        const guide = this.stepGuides[this.currentStep - 1];
+        if (!guide) return;
+
+        const titleEl = document.getElementById('wiz-step-title');
+        const descEl = document.getElementById('wiz-step-desc');
+        const countEl = document.getElementById('wiz-step-count');
+        const progressEl = document.getElementById('wiz-progress-bar');
         const btnNext = document.getElementById('wiz-btn-next');
 
-        if (!wizardContainer) return;
+        if (titleEl) titleEl.innerText = guide.title;
+        if (descEl) descEl.innerText = guide.desc;
+        if (countEl) countEl.innerText = `گام ${this.currentStep} از ${this.totalSteps}`;
+        
+        if (progressEl) {
+            const percent = (this.currentStep / this.totalSteps) * 100;
+            progressEl.style.width = `${percent}%`;
+        }
 
-        // آشکارسازی باکس گلس‌مورفیسم ویزارد
-        wizardContainer.classList.add('active');
-
-        // بروزرسانی متون راهنما بر اساس گام زنده
-        const currentGuide = this.stepGuides[this.currentStep - 1];
-        if (stepNumber) stepNumber.innerText = `مرحله ${this.currentStep} از ${this.totalSteps}`;
-        if (title) title.innerText = currentGuide.title;
-        if (desc) desc.innerText = currentGuide.desc;
-
-        // محاسبه و جابجایی پروگرس‌بار خطی هندسی
-        const progressPercent = (this.currentStep / this.totalSteps) * 100;
-        if (progressBar) progressBar.style.width = `${progressPercent}%`;
-
-        // مدیریت لایه فعال/غیرفعال بودن دکمه‌های ناوبری
-        if (btnBack) btnBack.disabled = this.currentStep === 1;
         if (btnNext) {
-            btnNext.innerText = this.currentStep === this.totalSteps ? 'پایان و ثبت' : 'بعدی';
-            btnNext.className = this.currentStep === this.totalSteps ? 'btn btn-success' : 'btn btn-primary';
+            btnNext.innerText = this.currentStep === this.totalSteps ? 'پایان کالیبراسیون' : 'مرحله بعد';
         }
     }
-
-    /**
-     * تزریق مستقیم رویدادها به کنسول مانیتورینگ کارگاهی لایه کاربری
-     */
-    logToConsole(message, type = 'info') {
-        const consoleBody = document.getElementById('app-console');
-        if (!consoleBody) return;
-
-        const logRow = document.createElement('div');
-        logRow.className = `log-${type}`;
-        logRow.innerText = `[${type.toUpperCase()}] ${message}`;
-        
-        consoleBody.appendChild(logRow);
-        consoleBody.scrollTop = consoleBody.scrollHeight; // اسکرول خودکار به آخرین پکت لوگ
-    }
-}
-
-// اکسپورت تک‌وهله‌ای (Singleton Pattern) جهت تضمین پایداری ماشین وضعیت در کل پروژه
-export const CalibrationWizard = new CalibrationWizardEngine();
+};
