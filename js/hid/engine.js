@@ -14,11 +14,11 @@ const DEVICE_FILTERS = [
 
 export const HidEngine = {
     activeDevice: null,
-    onLog: null,           // پل ارتباطی لاگ به app.js
-    onInputReceived: null, // پل ارتباطی پکت‌ها به app.js
+    onLog: null,           // پل ارتباطی ارسال لاگ به کالبک درون app.js
+    onInputReceived: null, // پل ارتباطی ارسال پکت‌های زنده به app.js
 
     /**
-     * متد هوشمند مدیریت و ارسال ایمن لاگ‌ها به ارکستراتور اصلی
+     * متد هوشمند مدیریت و ارسال ایمن لاگ‌ها بدون کرش دادن سیستم
      */
     log(message, type = 'info') {
         if (this.onLog) {
@@ -29,7 +29,7 @@ export const HidEngine = {
     },
 
     /**
-     * مقداردهی اولیه و شنود رویدادهای فیزیکی سیستم‌عامل (وصل یا قطع شدن کابل)
+     * مقداردهی اولیه و شنود رویدادهای فیزیکی سیستم‌عامل
      */
     init() {
         if (!navigator.hid) {
@@ -37,7 +37,7 @@ export const HidEngine = {
             return;
         }
 
-        // شنود رویدادهای سیستمی اتصال مجدد خودکار
+        // شنود رویدادهای سیستمی اتصال مجدد خودکار کابل یا بلوتوث
         navigator.hid.addEventListener('connect', (event) => {
             this.log(`دستگاه شناسایی‌شده قبلی متصل شد: ${event.device.productName}`, 'info');
             this.handleDeviceConnection(event.device);
@@ -55,7 +55,7 @@ export const HidEngine = {
     },
 
     /**
-     * متد متصل‌کننده به دکمه رابط کاربری (برطرف‌کننده باگ عدم تطابق متد در app.js)
+     * ⚡ برطرف‌کننده باگ اصلی: متد متصل‌کننده لایه کلیک دکمه در app.js
      */
     async connectDevice() {
         if (AppState.connection.isConnected) {
@@ -66,7 +66,7 @@ export const HidEngine = {
     },
 
     /**
-     * درخواست رسمی از کاربر برای صدور مجوز دسترسی به پورت سخت‌افزار (UI Trigger)
+     * درخواست رسمی از کاربر برای صدور مجوز دسترسی به پورت سخت‌افزار (پاپ‌آپ مرورگر)
      */
     async requestDevicePermission() {
         try {
@@ -87,7 +87,7 @@ export const HidEngine = {
     },
 
     /**
-     * تلاش برای جفت‌شدن خودکار با کنترلر بدون باز شدن پنجره پاپ‌آپ
+     * تلاش برای جفت‌شدن خودکار با کنترلر بدون باز شدن پنجره پاپ‌آپ مجدد
      */
     async autoConnectExistingDevices() {
         try {
@@ -114,25 +114,23 @@ export const HidEngine = {
 
             this.activeDevice = device;
             
-            // تشخیص نوع اتصال بر اساس استاندارد طول یا پورت گزارش پکت ورودی
+            // تشخیص نوع اتصال بر اساس پروتکل یا نام دستگاه
             const isBluetooth = device.productName.toLowerCase().includes('wireless') || 
-                                device.collections[0]?.inputReports?.some(r => r.reportId === 0x11);
+                                device.collections[0]?.inputReports?.some(r => r.reportId === 0x11 || r.reportId === 0x31);
             
-            // همگام‌سازی دقیق با کلیدهای توصیف شده در state.js و انتظارات app.js
+            // 🔄 همگام‌سازی دقیق با فیلدهای ساختار State شما جهت باز شدن قفل رندر لوپ
             AppState.connection.isConnected = true;
             AppState.connection.type = isBluetooth ? 'bluetooth' : 'usb';
             AppState.connection.interface = device;
             
             AppState.deviceInfo.name = device.productName;
-            AppState.deviceInfo.vendorId = device.vendorId; // ذخیره به صورت عددی خالص جهت پردازش ماتریسی در app.js
-            AppState.deviceInfo.productId = device.productId; // ذخیره به صورت عددی خالص
+            AppState.deviceInfo.vendorId = device.vendorId; // ذخیره به صورت عدد خالص جهت بیلد متد .toString(16) در app.js
+            AppState.deviceInfo.productId = device.productId; 
             
-            this.log(`ارتباط امن با موفقیت برقرار شد. پروتکل: WebHID (${AppState.connection.type.toUpperCase()})`, 'success');
+            this.log(`ارتباط با موفقیت برقرار شد. پروتکل: WebHID (${AppState.connection.type.toUpperCase()})`, 'success');
 
             // فعال‌سازی شنود لحظه‌ای پکت‌های ورودی سخت‌افزار
             device.addEventListener('inputreport', (event) => this.routeInputReport(event));
-
-            if (this.onDeviceReady) this.onDeviceReady(device);
 
         } catch (error) {
             this.log(`خطا در باز کردن پورت سخت‌افزار: ${error.message}`, 'error');
@@ -166,7 +164,6 @@ export const HidEngine = {
         if (now - this.lastTimestamp >= 1000) {
             const hz = Math.round((this.packetCount * 1000) / (now - this.lastTimestamp));
             
-            // تفکیک فرکانس بر اساس نوع کنترلر شناسایی شده
             if (vendorId === 0x054C) {
                 AppState.analysis.left.pollingRate = hz;
             } else {
@@ -189,7 +186,7 @@ export const HidEngine = {
             this.activeDevice = null;
         }
 
-        // بازنشانی فیلدهای متمرکز وضعیت
+        // بازنشانی فیلدها مطابق ساختار دقیق state.js پروژه شما
         AppState.connection.isConnected = false;
         AppState.connection.type = null;
         AppState.connection.interface = null;
