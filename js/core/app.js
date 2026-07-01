@@ -1,5 +1,5 @@
 /**
- * js/core/app.js
+ * js/core/app.js - بخش اصلی (قسمت 1)
  * MATRIX App Orchestrator - Production-Ready Version for Cloudflare & GitHub
  */
 
@@ -12,10 +12,7 @@ import { CalibrationWizard } from './wizard.js';
 
 const AppCore = {
     init() {
-        // ۱. پل ارتباطی ارسال لاگ به کنسول UI
         HidEngine.onLog = (message, type) => this.logToConsole(message, type);
-
-        // ۲. خط لوله داده فیزیکی
         HidEngine.onInputReceived = (vendorId, reportId, data) => {
             const dataView = new DataView(data.buffer);
             if (vendorId === 0x054C || vendorId === 1356) {
@@ -25,16 +22,11 @@ const AppCore = {
             }
         };
 
-        this.logToConsole('سامانه ماتریکس آماده برقراری ارتباط با پورت سخت‌افزار است.', 'info');
+        this.logToConsole('سامانه ماتریکس آماده برقراری اتصال با پورت سخت‌افزار است.', 'info');
         
-        // راه‌اندازی ماژول‌ها
         HidEngine.init();
         AnalogCanvas.init('canvas-left', 'canvas-right');
-
-        // اتصال ایمن رویدادهای دکمه‌ها با چک کردن وجود المان (Prevention of Null Pointer)
         this.bindEvents();
-
-        // شروع لوپ رندر ۶۰ هرتز
         this.lifecycleLoop();
     },
 
@@ -48,7 +40,15 @@ const AppCore = {
         }
 
         const startCalibBtn = document.getElementById('btn-start-calibration');
-        if (startCalibBtn) startCalibBtn.onclick = () => CalibrationWizard.start();
+        if (startCalibBtn) startCalibBtn.onclick = () => {
+            CalibrationWizard.start();
+            // ✅ ویزارد modal نمایش داده می‌شود
+            const wizardModal = document.getElementById('wizard-modal');
+            if (wizardModal) {
+                wizardModal.style.display = 'flex';
+                document.body.classList.add('calibration-active');
+            }
+        };
 
         const nextBtn = document.getElementById('wiz-btn-next');
         if (nextBtn) nextBtn.onclick = () => CalibrationWizard.nextStep();
@@ -57,7 +57,15 @@ const AppCore = {
         if (backBtn) backBtn.onclick = () => CalibrationWizard.prevStep();
 
         const cancelBtn = document.getElementById('wiz-btn-cancel');
-        if (cancelBtn) cancelBtn.onclick = () => CalibrationWizard.cancel();
+        if (cancelBtn) cancelBtn.onclick = () => {
+            CalibrationWizard.cancel();
+            // ✅ ویزارد modal پنهان می‌شود
+            const wizardModal = document.getElementById('wizard-modal');
+            if (wizardModal) {
+                wizardModal.style.display = 'none';
+                document.body.classList.remove('calibration-active');
+            }
+        };
     },
 
     lifecycleLoop() {
@@ -65,12 +73,12 @@ const AppCore = {
             AnalogCanvas.instances['left']?.updateAndRender('left', AppState.inputs.axes.lx, AppState.inputs.axes.ly);
             AnalogCanvas.instances['right']?.updateAndRender('right', AppState.inputs.axes.rx, AppState.inputs.axes.ry);
             
-            // ✅ فراخوانی رکورد کردن نمونه‌های زنده برای ویزارد کالیبراسیون
             if (CalibrationWizard.isActive) {
                 CalibrationWizard.recordLiveSamples();
             }
             
             this.renderVirtualGamepad();
+            this.updateDirectionMatrix();
         } else {
             resetAppStateInputs();
         }
@@ -83,8 +91,8 @@ const AppCore = {
         Object.keys(AppState.inputs.buttons).forEach(btnKey => {
             const el = document.getElementById(`btn-${btnKey}`);
             if (el) {
-                if (AppState.inputs.buttons[btnKey]) el.classList.add('active');
-                else el.classList.remove('active');
+                if (AppState.inputs.buttons[btnKey]) el.classList.add('active-node');
+                else el.classList.remove('active-node');
             }
         });
 
@@ -102,6 +110,47 @@ const AppCore = {
         if (txtR2) txtR2.innerText = `${r2Perc}%`;
     },
 
+    // ✅ تابع جدید برای آپدیت ماتریس جهت‌ها
+    updateDirectionMatrix() {
+        const getDirection = (x, y) => {
+            if (Math.abs(x) < 0.3 && Math.abs(y) < 0.3) return 'C';
+            if (y > 0.3 && Math.abs(x) < 0.3) return 'N';
+            if (y < -0.3 && Math.abs(x) < 0.3) return 'S';
+            if (x > 0.3 && Math.abs(y) < 0.3) return 'E';
+            if (x < -0.3 && Math.abs(y) < 0.3) return 'W';
+            if (y > 0.3 && x > 0.3) return 'NE';
+            if (y > 0.3 && x < -0.3) return 'NW';
+            if (y < -0.3 && x > 0.3) return 'SE';
+            if (y < -0.3 && x < -0.3) return 'SW';
+            return 'C';
+        };
+
+        const leftDir = getDirection(AppState.inputs.axes.lx, AppState.inputs.axes.ly);
+        const rightDir = getDirection(AppState.inputs.axes.rx, AppState.inputs.axes.ry);
+
+        // آپدیت ماتریس چپ
+        const leftMatrix = document.getElementById('matrix-left');
+        if (leftMatrix) {
+            leftMatrix.querySelectorAll('span').forEach(span => {
+                span.classList.remove('active');
+                if (span.getAttribute('data-dir') === leftDir) {
+                    span.classList.add('active');
+                }
+            });
+        }
+
+        // آپدیت ماتریس راست
+        const rightMatrix = document.getElementById('matrix-right');
+        if (rightMatrix) {
+            rightMatrix.querySelectorAll('span').forEach(span => {
+                span.classList.remove('active');
+                if (span.getAttribute('data-dir') === rightDir) {
+                    span.classList.add('active');
+                }
+            });
+        }
+    },
+
     renderTelemetryUI() {
         const body = document.body;
         const badge = document.getElementById('connection-badge');
@@ -113,7 +162,7 @@ const AppCore = {
                 badge.innerText = 'آنلاین // سخت‌افزار متصل است';
                 badge.className = 'badge badge-connected';
             }
-            if (devName) devName.innerText = AppState.deviceInfo.name;
+            if (devName) devName.innerText = AppState.deviceInfo.name + ` (${AppState.deviceInfo.model})`;
 
             if (document.getElementById('hw-mcu')) document.getElementById('hw-mcu').innerText = AppState.connection.type.toUpperCase();
             if (document.getElementById('fw-date')) document.getElementById('fw-date').innerText = `0x${AppState.deviceInfo.vendorId.toString(16).toUpperCase()}`;

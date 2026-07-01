@@ -6,23 +6,22 @@
 
 export const AppState = {
     // ۱. وضعیت اتصال دستگاه WebHID
-// js/core/state.js
-connection: {
-    isConnected: false,
-    status: 'disconnected', // 'connected' | 'disconnected'
-    type: null,             // 'usb' | 'bluetooth'
-    interface: null
-},
+    connection: {
+        isConnected: false,
+        status: 'disconnected', // 'connected' | 'disconnected'
+        type: null,             // 'usb' | 'bluetooth'
+        interface: null
+    },
 
     // اطلاعات اصلی و شناسایی فریمور کنترلر
     deviceInfo: {
         name: 'در انتظار اتصال کنترلر...',
         vendorId: 0,
         productId: 0,
-        model: '-' // 'DS4' | 'DualSense' | 'DualSenseEdge'
+        model: '-' // 'DS4' | 'DualSense' | 'DualSenseEdge' | 'Xbox'
     },
 
-    // ۲. مقادیر زنده ورودی پکت‌ها برای بخش Input Testing
+    // ۲. مقادیر زنده ورودی پکت‌های برای بخش Input Testing
     inputs: {
         axes: {
             lx: 0.0,
@@ -60,8 +59,16 @@ connection: {
             level: null,       // درصد باتری (0 تا 100)
             isCharging: false  // وضعیت شارژ (true یا false)
         },
-        left: { pollingRate: 0 },
-        right: { pollingRate: 0 }
+        left: { 
+            pollingRate: 0,
+            centerOffset: 0.0,      // ✅ افزودن شد
+            circularError: 0.0      // ✅ افزودن شد
+        },
+        right: { 
+            pollingRate: 0,
+            centerOffset: 0.0,      // ✅ افزودن شد
+            circularError: 0.0      // ✅ افزودن شد
+        }
     },
 
     // ۴. بافرها و ضرایب ماتریس کالیبراسیون استیک‌ها (Stick & Range Calibration)
@@ -101,6 +108,6 @@ export function resetAppStateInputs() {
     }
     
     AppState.analysis.battery = { level: null, isCharging: false };
-    AppState.analysis.left.pollingRate = 0;
-    AppState.analysis.right.pollingRate = 0;
+    AppState.analysis.left = { pollingRate: 0, centerOffset: 0.0, circularError: 0.0 };
+    AppState.analysis.right = { pollingRate: 0, centerOffset: 0.0, circularError: 0.0 };
 }
