@@ -1,55 +1,69 @@
 /**
- * HID-Fix Pro - Core State Management
- * [Standardized Source of Truth - v1.2.0 - Fixed]
+ * js/core/state.js
+ * DualShock / DualSense Calibration Tool - Core State Management
+ * منبع متمرکز وضعیت سیستم (Source of Truth) اختصاصی برای کنترلرهای سونی
  */
 
 export const AppState = {
-    // وضعیت اتصال دستگاه به مرورگر
+    // ۱. وضعیت اتصال دستگاه WebHID
     connection: {
         isConnected: false,
-        status: 'disconnected', // 'disconnected' | 'connecting' | 'connected' | 'error'
-        type: null,             // 'USB' | 'Bluetooth'
-        interface: null
+        status: 'disconnected', // 'connected' | 'disconnected'
+        type: '-',             // 'usb' | 'bluetooth'
+        device: null           // ذخیره رفرنس شیء سخت‌افزاری WebHID Device
     },
 
-    // داده‌های هویتی و ثبت عمیق فریمور استخراج شده از کنترلر
+    // اطلاعات اصلی و شناسایی فریمور کنترلر
     deviceInfo: {
-        name: 'سخت‌افزار ناشناخته',
-        controllerName: 'Unknown Gamepad',
+        name: 'در انتظار اتصال کنترلر...',
         vendorId: 0,
         productId: 0,
-        firmware: {
-            version: '-',
-            buildDate: '-',
-            sblVersion: '-',
-            touchpadDriver: '-'
-        },
-        hardware: {
-            mcuId: '-',
-            factorySerial: '-',
-            macAddress: '-'
-        }
+        model: '-' // 'DS4' | 'DualSense' | 'DualSenseEdge'
     },
 
-    // مقادیر زنده ورودی پکت‌های باینری (کلیدها و آنالوگ‌ها)
+    // ۲. مقادیر زنده ورودی پکت‌ها برای بخش Input Testing
     inputs: {
-        axes: { lx: 0.0, ly: 0.0, rx: 0.0, ry: 0.0 },
-        triggers: { l2: 0.0, r2: 0.0 },
+        axes: {
+            lx: 0.0,
+            ly: 0.0,
+            rx: 0.0,
+            ry: 0.0
+        },
+        triggers: {
+            l2: 0.0,
+            r2: 0.0
+        },
         buttons: {
-            dpadUp: false, dpadDown: false, dpadLeft: false, dpadRight: false,
-            actionTop: false, actionBottom: false, actionLeft: false, actionRight: false,
-            l1: false, r1: false, l3: false, r3: false
+            dpadUp: false,
+            dpadDown: false,
+            dpadLeft: false,
+            dpadRight: false,
+            actionTop: false,    // Triangle
+            actionBottom: false, // Cross
+            actionLeft: false,   // Square
+            actionRight: false,  // Circle
+            l1: false,
+            r1: false,
+            l3: false,
+            r3: false,
+            share: false,
+            options: false,
+            ps: false,
+            touchpadClick: false
         }
     },
 
-    // آنالیز پکت‌ها جهت رفع باگ کرش موتور WebHID
+    // ۳. وضعیت نمایش فرکانس پکت‌ها و باتری (Battery Status Display)
     analysis: {
-        left: { pollingRate: 0, centerOffset: 0.0, circularError: 0.0 },
-        right: { pollingRate: 0, centerOffset: 0.0, circularError: 0.0 },
-        battery: { level: null, isCharging: false, voltage: '-' }
+        battery: {
+            level: null,       // درصد باتری (0 تا 100)
+            isCharging: false  // وضعیت شارژ (true یا false)
+        },
+        left: { pollingRate: 0 },
+        right: { pollingRate: 0 }
     },
 
-    // ماتریس ضرایب اصلاحی خروجی از ماشین وضعیت کالیبراسیون
+    // ۴. بافرها و ضرایب ماتریس کالیبراسیون استیک‌ها (Stick & Range Calibration)
     calibration: {
         isCalibrated: false,
         computedOffsets: {
@@ -58,31 +72,34 @@ export const AppState = {
         }
     },
 
-    // سیستم مرکزی ثبت لوکال لاگ‌ها جهت جلوگیری از کرش ماژول‌های وابسته
+    /**
+     * 🛠️ پیاده‌سازی امن تابع لوگر متمرکز جهت جلوگیری از خطای TypeError و کرش کردن کامپوننت‌ها
+     */
     log(message, type = 'info') {
-        const timestamp = new Date().toLocaleTimeString();
-        console.log(`[%c${type.toUpperCase()}%c] ${timestamp} - ${message}`, 
-            `color: ${type === 'success' ? '#4caf50' : type === 'warning' ? '#ff9800' : type === 'error' ? '#f44336' : '#2196f3'}; font-weight: bold;`, 
-            'color: inherit;'
-        );
-        // در صورت وجود المان کنسول در UI، می‌توان لاگ‌ها را اینجا به DOM نیز تزریق کرد.
-        const consoleEl = document.getElementById('app-console');
-        if (consoleEl) {
-            consoleEl.innerHTML += `<div class="log-${type}">[${timestamp}] ${message}</div>`;
-            consoleEl.scrollTop = consoleEl.scrollHeight;
+        if (typeof this.onLogCallback === 'function') {
+            this.onLogCallback(message, type);
+        } else {
+            // اگر هنوز رابط کاربری لود نشده باشد، در کنسول مرورگر لاگ می‌اندازد
+            console.log(`[${type.toUpperCase()}] ${message}`);
         }
-    }
+    },
+    
+    // هوک متصل‌کننده لوگر به بخش کنسول متنی در UI (توسط app.js مقداردهی می‌شود)
+    onLogCallback: null
 };
 
 /**
- * متد کمکی جهت ریست کردن وضعیت ورودی‌ها هنگام قطع اتصال ناگهانی سخت‌افزار
+ * متد کمکی جهت ریست کردن کامل مقادیر ورودی هنگام قطع اتصال سخت‌افزار
  */
 export function resetAppStateInputs() {
     AppState.inputs.axes = { lx: 0.0, ly: 0.0, rx: 0.0, ry: 0.0 };
     AppState.inputs.triggers = { l2: 0.0, r2: 0.0 };
+    
     for (const key in AppState.inputs.buttons) {
         AppState.inputs.buttons[key] = false;
     }
+    
+    AppState.analysis.battery = { level: null, isCharging: false };
     AppState.analysis.left.pollingRate = 0;
     AppState.analysis.right.pollingRate = 0;
 }
