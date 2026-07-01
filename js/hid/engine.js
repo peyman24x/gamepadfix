@@ -81,7 +81,8 @@ export const HidEngine = {
             AppState.connection.device = device;
             AppState.connection.isConnected = true;
             AppState.connection.status = 'connected';
-            
+            AppState.connection.isConnected = false;
+            AppState.connection.status = 'disconnected';
             AppState.deviceInfo.name = device.productName || 'Sony Controller';
             AppState.deviceInfo.vendorId = device.vendorId;
             AppState.deviceInfo.productId = device.productId;
