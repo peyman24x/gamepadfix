@@ -1,10 +1,10 @@
 /**
  * js/core/app.js
- * HID-Fix App Orchestrator - Elite DualShock Framework
- * اتصال لایه ارتباطی WebHID به لایه مپینگ و دوایر فرکانسی رابط کاربری
+ * HID-Fix App Orchestrator - DualShock Matrix Engine Edition
+ * ارکستراتور اصلی و ترمیم‌کننده خط لوله داده فیزیکی به رابط کاربری دوقلوی دیجیتال
  */
 
-import { AppState } from './state.js';
+import { AppState, resetAppStateInputs } from './state.js';
 import { HidEngine } from '../hid/engine.js';
 import { SonyDecoder } from '../controllers/sony.js';
 import { XboxDecoder } from '../controllers/xbox.js';
@@ -13,13 +13,16 @@ import { CalibrationWizard } from './wizard.js';
 
 const AppCore = {
     /**
-     * راه‌اندازی اولیه رویدادها و اتصال موتور رندرسازی زنده
+     * راه‌اندازی اولیه ماژول‌ها و رفع خطاهای سیستمی بافرهای فریمور
      */
     init() {
-        // اتصال کنسول متنی موتور فیزیکی به لایه کاربری UI
+        // 🛠️ حل ریشه‌ای باگ کرش: تزریق داینامیک تابع لوگر به استیت جهت جلوگیری از خطای متدهای اگزکوت دکودرها
+        AppState.log = (message, type) => this.logToConsole(message, type);
+
+        // ۱. اتصال پل لاگ موتور فیزیکی به مانیتور کنسول رابط کاربری
         HidEngine.onLog = (message, type) => this.logToConsole(message, type);
 
-        // مسیریابی پکت‌های ورودی به دکودرها متناسب با کد شناسه کمپانی سازنده
+        // ۲. ایجاد خط لوله باینری: هدایت پکت‌های خام به دکودر اختصاصی متناظر
         HidEngine.onInputReceived = (vendorId, reportId, data) => {
             const dataView = new DataView(data.buffer);
             if (vendorId === 0x054C || vendorId === 1356) {
@@ -29,147 +32,142 @@ const AppCore = {
             }
         };
 
-        this.logToConsole('هسته مانیتورینگ DualShock/Xbox با موفقیت راه اندازی شد.', 'info');
+        this.logToConsole('هسته مرکزی سامانه کالیبراسیون ماتریکس با موفقیت ترمیم و لود شد.', 'info');
         
+        // مقداردهی اولیه موتورهای پایه گرافیکی روی بوم‌ها
         HidEngine.init();
         AnalogCanvas.init('canvas-left', 'canvas-right');
 
-        // الحاق رویداد دکمه‌ها و فرم‌های کالیبراسیون سخت‌افزار
+        // اتصال کلیک رویدادها به المان‌های رابط کاربری HTML با الگوهای دفاعی ایمن
         document.getElementById('btn-start-calibration')?.addEventListener('click', () => CalibrationWizard.start());
-        document.getElementById('btn-connect')?.addEventListener('click', () => HidEngine.connectDevice());
-
-        // کلیدهای کمکی ماشین وضعیت ویزارد کالیبراسیون در صورت وجود در دام
         document.getElementById('wiz-btn-next')?.addEventListener('click', () => CalibrationWizard.nextStep());
         document.getElementById('wiz-btn-back')?.addEventListener('click', () => CalibrationWizard.prevStep());
         document.getElementById('wiz-btn-cancel')?.addEventListener('click', () => CalibrationWizard.cancel());
+        document.getElementById('btn-connect')?.addEventListener('click', () => HidEngine.connectDevice());
 
-        // آغاز لوپ پردازش بلادرنگ فریم‌ها (Real-Time Render Loop)
+        // آغاز حلقه رندرسازی پرسرعت همگام با نرخ نوسازی مانیتور (60Hz / 120Hz)
         this.startUpdateLoop();
     },
 
     /**
-     * حلقه رندر گرافیک برداری آنالوگ‌ها و نگاشت دکمه‌ها
+     * حلقه بروزرسانی گرافیکی، مپینگ دکمه‌ها و تلمتری مداوم
      */
     startUpdateLoop() {
-        const frame = () => {
+        const update = () => {
+            // رندر لحظه‌ای پوزیشن استیک‌ها روی بوم نقاشی وکتورها
             const axes = AppState.inputs.axes;
-            
-            // رندر نقشه برداری پوتانسیومترها روی کانوس
             AnalogCanvas.updateAndRender('left', axes.lx, axes.ly);
             AnalogCanvas.updateAndRender('right', axes.rx, axes.ry);
 
-            // فراخوانی رندر مپینگ دکمه‌ها و نوارهای ماشه آنالوگ
-            this.syncGamepadInterfaceNodes();
+            // همگام‌سازی زنده دکمه‌ها و تریگرهای دسته واقعی با لایه ساختاری دوقلوی دیجیتال UI
+            this.updateVirtualGamepadUI();
 
-            // تزریق دادهای تلمتری انحراف و ولتاژ آی‌سی
-            this.renderTelemetryMatrix();
-            this.updateSystemStatusBadge();
+            // بروزرسانی پنل اطلاعات متنی و وضعیت اتصال داشبورد
+            this.renderTelemetry();
+            this.updateConnectionUI();
 
-            requestAnimationFrame(frame);
+            requestAnimationFrame(update);
         };
-        requestAnimationFrame(frame);
+        requestAnimationFrame(update);
     },
 
     /**
-     * نگاشت و رندر همزمان دکمه‌ها، ماشه‌ها و پد جهت‌ها (Digital Twin Mapping Engine)
+     * مپینگ و همگام‌سازی بلادرنگ دکمه‌ها، ماشه‌ها و پد جهت‌ها (Digital Twin Real-time Sync Engine)
      */
-    syncGamepadInterfaceNodes() {
-        // بروزرسانی وضعیت کلیدهای دوقطبی (Pressed / Unpressed)
+    updateVirtualGamepadUI() {
+        // مپینگ زنده دکمه‌های باینری و جهتی (روشن/خاموش شدن بر اساس کلاس گرافیکی .active-node)
         const buttons = AppState.inputs.buttons;
         for (const [btnKey, isPressed] of Object.entries(buttons)) {
-            const btnNode = document.getElementById(`btn-${btnKey}`);
-            if (btnNode) {
+            const btnElement = document.getElementById(`btn-${btnKey}`);
+            if (btnElement) {
                 if (isPressed) {
-                    btnNode.classList.add('pressed');
+                    btnElement.classList.add('active-node');
                 } else {
-                    btnNode.classList.remove('pressed');
+                    btnElement.classList.remove('active-node');
                 }
             }
         }
 
-        // بروزرسانی پهنای باند و درصد فشار ماشه‌های پایینی (L2 / R2)
+        // پایش مپینگ و رندر ماتریکسی لایه تریگرهای آنالوگ کششی (L2 و R2)
         const triggers = AppState.inputs.triggers;
         ['l2', 'r2'].forEach(tKey => {
-            const rawVal = triggers[tKey] || 0;
-            const pct = Math.round(rawVal * 100);
+            const rawValue = triggers[tKey] || 0;
+            const percentage = Math.round(rawValue * 100);
             
-            const barNode = document.getElementById(`bar-${tKey}`);
-            const txtNode = document.getElementById(`txt-${tKey}`);
+            const barElement = document.getElementById(`bar-${tKey}`);
+            const txtElement = document.getElementById(`txt-${tKey}`);
             
-            if (barNode) barNode.style.width = `${pct}%`;
-            if (txtNode) txtNode.innerText = `${pct}%`;
+            if (barElement) barElement.style.width = `${percentage}%`;
+            if (txtElement) txtElement.innerText = `${percentage}%`;
         });
     },
 
     /**
-     * رندر زنده ماتریس محاسبات خطا، فرکانس و باتری تراشه
+     * رندر زنده اطلاعات ماتریس خطا و فرکانس پکت‌ها در داشبورد
      */
-    renderTelemetryMatrix() {
+    renderTelemetry() {
         const calib = AppState.calibration.computedOffsets;
         const analysis = AppState.analysis;
 
-        // رندر مقادیر عددی سنترگیری دقیق دایره‌ای
+        // نمایش مقادیر عددی سنترگیری دقیق دایره‌ای
         const errLOffset = document.getElementById('err-l-offset');
         if (errLOffset) errLOffset.innerText = (calib.left.offsetX || 0).toFixed(4);
 
         const errROffset = document.getElementById('err-r-offset');
         if (errROffset) errROffset.innerText = (calib.right.offsetX || 0).toFixed(4);
 
-        // رندر نرخ خطای دایره‌ای لبه پوتانسیومترها
+        // رندر نرخ خطای دایره‌ای شکل سنسورها (Circular Error)
         const errLCirc = document.getElementById('err-l-circ');
         if (errLCirc) errLCirc.innerText = `${((analysis.left.circularError || 0) * 100).toFixed(2)}%`;
 
         const errRCirc = document.getElementById('err-r-circ');
         if (errRCirc) errRCirc.innerText = `${((analysis.right.circularError || 0) * 100).toFixed(2)}%`;
 
-        // نمایش فرکانس پکت‌های زنده سخت‌افزار (Polling Rate Counter)
+        // نمایش فرکانس پکت‌های زنده سخت‌افزار (Polling Rate) متناظر با هدرهای کارت‌های رادار جدید
         const valLHz = document.getElementById('val-hz-left');
         if (valLHz) valLHz.innerText = `${analysis.left.pollingRate || 0} Hz`;
 
         const valRHz = document.getElementById('val-hz-right');
         if (valRHz) valRHz.innerText = `${analysis.right.pollingRate || 0} Hz`;
 
-        // مدیریت نمایش وضعیت مدار منبع تغذیه کنترلر
+        // وضعیت شارژ و باتری و برچسب کالیبراسیون سخت‌افزار
         const valChargeStatus = document.getElementById('val-charge-status');
         if (valChargeStatus) {
             if (AppState.calibration.isCalibrated) {
-                valChargeStatus.innerText = "کالیبره سخت‌افزاری تایید شد";
+                valChargeStatus.innerText = "کالیبره مگنتی فعال";
                 valChargeStatus.style.color = "var(--color-xbox)";
             } else if (analysis.battery.level !== null) {
-                valChargeStatus.innerText = `باتری: ${analysis.battery.level}% ${analysis.battery.isCharging ? '⚡' : ''}`;
+                valChargeStatus.innerText = `باتری: ${analysis.battery.level}% ${analysis.battery.isCharging ? ' ⚡' : ''}`;
                 valChargeStatus.style.color = "var(--text-primary)";
             } else {
-                valChargeStatus.innerText = "پک انرژی متصل (ثبات جریان)";
+                valChargeStatus.innerText = "تغذیه کابل پایدار";
                 valChargeStatus.style.color = "var(--color-cyan)";
             }
         }
     },
 
     /**
-     * پایش و اعمال کلاس‌های ساختاری بر اساس وضعیت اتصال فیزیکی سخت‌افزار
+     * پایش و اعمال کلاس‌های ساختاری بر اساس وضعیت اتصال فیزیکی دستگاه
      */
-    updateSystemStatusBadge() {
+    updateConnectionUI() {
         const body = document.body;
         const badge = document.getElementById('connection-badge');
         const devName = document.getElementById('device-name');
 
-        // دسترسی به اطلاعات وضعیت از استیت کنترلر
-        const isConnected = AppState.connection.isConnected || (AppState.connection.status === 'connected');
-
-        if (isConnected) {
+        if (AppState.connection.status === 'connected' || AppState.connection.isConnected) {
             if (body.classList.contains('disconnected')) {
                 body.classList.remove('disconnected');
                 body.classList.add('connected');
             }
             
             if (badge) {
-                badge.innerText = AppState.connection.type === 'bluetooth' ? 'بلوتوث // متصل' : 'کابل فیزیکی // متصل';
+                badge.innerText = AppState.connection.type === 'bluetooth' ? 'پروتکل بی سیم // فعال' : 'اتصال کابل سخت‌افزاری // فعال';
                 badge.className = 'badge badge-connected';
             }
 
-            if (devName) devName.innerText = AppState.deviceInfo.name || 'سخت‌افزار مپ شده آنلاین است';
+            if (devName) devName.innerText = AppState.deviceInfo.name || 'سخت‌افزار مپ شده متصل است';
 
-            // تزریق شناسه‌های فنی رجیسترهای چیپست به تلمتری فریمور
+            // تزریق کدهای شناسه سخت‌افزاری چیپست به جدول اطلاعات فریمور
             if (document.getElementById('fw-ver')) document.getElementById('fw-ver').innerText = `0x${(AppState.deviceInfo.productId || 0).toString(16).toUpperCase()}`;
             if (document.getElementById('fw-date')) document.getElementById('fw-date').innerText = `0x${(AppState.deviceInfo.vendorId || 0).toString(16).toUpperCase()}`;
             if (document.getElementById('hw-mcu')) document.getElementById('hw-mcu').innerText = (AppState.connection.type || 'USB').toUpperCase();
@@ -181,12 +179,13 @@ const AppCore = {
             }
             
             if (badge) {
-                badge.innerText = 'آفلاین // قطع اتصال فیزیکی';
+                badge.innerText = 'آفلاین // قطع اتصال';
                 badge.className = 'badge badge-disconnected';
             }
 
-            if (devName) devName.innerText = 'در انتظار شناسایی آی‌سی سخت‌افزار...';
+            if (devName) devName.innerText = 'در انتظار سنترگیری کابل سخت‌افزار...';
             
+            // بازنشانی فیلدها در لایه امن دیسکانکت فیزیکی
             ['fw-ver', 'fw-date', 'hw-mcu'].forEach(id => {
                 const element = document.getElementById(id);
                 if (element) element.innerText = '-';
@@ -195,7 +194,7 @@ const AppCore = {
     },
 
     /**
-     * ثبت گزارشات خط لوله پکت‌ها در پنجره لاگ رابط کاربری
+     * تزریق متن رویدادها به کنسول کارگاهی رابط کاربری
      */
     logToConsole(message, type = 'info') {
         const consoleBody = document.getElementById('app-console');
